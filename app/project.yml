@@ -1,0 +1,25 @@
+name: zydock
+
+options:
+  bundleIdPrefix: com.wilson
+  deploymentTarget:
+    macOS: "13.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    # No dock icon — this is a background agent app
+    LSUIElement: YES
+
+targets:
+  zydock:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/zydock
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wilson.zydock
+        PRODUCT_NAME: zydock
+        INFOPLIST_FILE: Sources/zydock/Info.plist
