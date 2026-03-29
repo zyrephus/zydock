@@ -22,19 +22,23 @@ struct StateUpdate: Codable {
     }
 }
 
+struct SessionInfo: Identifiable {
+    let id: String
+    let state: DockState
+    let tool: String?
+}
+
 /// Holds the current display state derived from all active sessions.
 class SessionState: ObservableObject {
     @Published var state: DockState = .disconnected
     @Published var toolName: String?
+    @Published var activeSessions: [SessionInfo] = []
 
-    // Per-session tracking: session_id → (state, tool)
     private var sessions: [String: (state: DockState, tool: String?)] = [:]
 
-    /// Called when a state update arrives from the daemon.
     func update(from update: StateUpdate) {
         DispatchQueue.main.async {
             if update.state == .disconnected {
-                // This session ended — remove it, don't affect others
                 self.sessions.removeValue(forKey: update.sessionID)
             } else {
                 self.sessions[update.sessionID] = (update.state, update.tool)
@@ -43,18 +47,24 @@ class SessionState: ObservableObject {
         }
     }
 
-    /// Called when the WebSocket connection itself drops (daemon is down).
     func markDaemonDisconnected() {
         DispatchQueue.main.async {
             self.sessions.removeAll()
             self.state = .disconnected
             self.toolName = nil
+            self.activeSessions = []
         }
     }
 
-    /// Pick the most urgent state across all active sessions.
     private func recompute() {
         let priority: [DockState] = [.waitingPermission, .toolActive, .thinking, .idle]
+
+        activeSessions = sessions.map { SessionInfo(id: $0.key, state: $0.value.state, tool: $0.value.tool) }
+            .sorted { s1, s2 in
+                let p1 = priority.firstIndex(of: s1.state) ?? priority.count
+                let p2 = priority.firstIndex(of: s2.state) ?? priority.count
+                return p1 < p2
+            }
 
         for candidate in priority {
             if let match = sessions.values.first(where: { $0.state == candidate }) {
@@ -64,7 +74,6 @@ class SessionState: ObservableObject {
             }
         }
 
-        // No active sessions left
         state = .idle
         toolName = nil
     }
