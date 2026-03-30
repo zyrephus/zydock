@@ -119,6 +119,16 @@ class NotchWindow {
         wsClient?.connect()
     }
 
+    /// Toggle the notch between expanded and collapsed.
+    /// Called by HotkeyManager when the global shortcut fires.
+    func toggle() {
+        if notchState.isExpanded {
+            collapse()
+        } else {
+            expand()
+        }
+    }
+
     private func expand() {
         guard !notchState.isExpanded else { return }
         notchState.isExpanded = true

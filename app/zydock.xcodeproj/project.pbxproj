@@ -12,6 +12,8 @@
 		768752F0489B38247B54E469 /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A391DF33F21D421BDE1D705 /* NotchView.swift */; };
 		7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1276140B25A5B19042DD7B9D /* SessionState.swift */; };
 		94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */; };
+		CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5583035ACF599FC80ED516 /* HotkeyManager.swift */; };
+		EF9053AA507105A0BE41B700 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64ADF17981EA3B57AD74319 /* SettingsView.swift */; };
 		FA5966A057203271E6BEB715 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */; };
 /* End PBXBuildFile section */
 
@@ -21,7 +23,9 @@
 		1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		1E527383BCE478B201140E2C /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
 		229BA93BE95779462BE279AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7A5583035ACF599FC80ED516 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		9A391DF33F21D421BDE1D705 /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
+		B64ADF17981EA3B57AD74319 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zydockApp.swift; sourceTree = "<group>"; };
 		FABF96E2AB773DF55947D2BE /* DaemonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -31,10 +35,12 @@
 			isa = PBXGroup;
 			children = (
 				FABF96E2AB773DF55947D2BE /* DaemonManager.swift */,
+				7A5583035ACF599FC80ED516 /* HotkeyManager.swift */,
 				229BA93BE95779462BE279AD /* Info.plist */,
 				9A391DF33F21D421BDE1D705 /* NotchView.swift */,
 				1E527383BCE478B201140E2C /* NotchWindow.swift */,
 				1276140B25A5B19042DD7B9D /* SessionState.swift */,
+				B64ADF17981EA3B57AD74319 /* SettingsView.swift */,
 				1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */,
 				CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */,
 			);
@@ -136,9 +142,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */,
+				CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */,
 				768752F0489B38247B54E469 /* NotchView.swift in Sources */,
 				0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */,
 				7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */,
+				EF9053AA507105A0BE41B700 /* SettingsView.swift in Sources */,
 				FA5966A057203271E6BEB715 /* WebSocketClient.swift in Sources */,
 				94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */,
 			);
