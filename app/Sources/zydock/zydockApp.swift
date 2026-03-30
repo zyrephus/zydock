@@ -16,7 +16,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var notchWindow: NotchWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        DaemonManager.shared.start()
         notchWindow = NotchWindow()
         notchWindow?.show()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        DaemonManager.shared.stop()
     }
 }

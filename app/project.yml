@@ -23,3 +23,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.wilson.zydock
         PRODUCT_NAME: zydock
         INFOPLIST_FILE: Sources/zydock/Info.plist
+    postBuildScripts:
+      - script: |
+          cd "$SRCROOT/../daemon"
+          go build -o "$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/MacOS/zydockd" .
+        name: "Build Go Daemon"

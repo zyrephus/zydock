@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FABF96E2AB773DF55947D2BE /* DaemonManager.swift */; };
 		0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E527383BCE478B201140E2C /* NotchWindow.swift */; };
 		768752F0489B38247B54E469 /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A391DF33F21D421BDE1D705 /* NotchView.swift */; };
 		7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1276140B25A5B19042DD7B9D /* SessionState.swift */; };
@@ -22,12 +23,14 @@
 		229BA93BE95779462BE279AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9A391DF33F21D421BDE1D705 /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
 		CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zydockApp.swift; sourceTree = "<group>"; };
+		FABF96E2AB773DF55947D2BE /* DaemonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		2BFE1C7962ACB1E6D0976B80 /* zydock */ = {
 			isa = PBXGroup;
 			children = (
+				FABF96E2AB773DF55947D2BE /* DaemonManager.swift */,
 				229BA93BE95779462BE279AD /* Info.plist */,
 				9A391DF33F21D421BDE1D705 /* NotchView.swift */,
 				1E527383BCE478B201140E2C /* NotchWindow.swift */,
@@ -63,6 +66,7 @@
 			buildConfigurationList = 0F5001F7823CF33C71B018D8 /* Build configuration list for PBXNativeTarget "zydock" */;
 			buildPhases = (
 				3ED97AC846F0DB05D351A1E1 /* Sources */,
+				C747C9CF983A28B543DA0882 /* Build Go Daemon */,
 			);
 			buildRules = (
 			);
@@ -105,11 +109,33 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		C747C9CF983A28B543DA0882 /* Build Go Daemon */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Go Daemon";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd \"$SRCROOT/../daemon\"\ngo build -o \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/MacOS/zydockd\" .\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		3ED97AC846F0DB05D351A1E1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */,
 				768752F0489B38247B54E469 /* NotchView.swift in Sources */,
 				0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */,
 				7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */,
