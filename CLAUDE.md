@@ -5,8 +5,8 @@ macOS notch widget that monitors Claude Code sessions via hooks + Go daemon + Sw
 ## Build & Run
 
 ```bash
-# Kill existing instance, rebuild, and relaunch
-killall zydock 2>/dev/null; make run
+# Kill existing instance + daemon, rebuild, and relaunch
+killall zydockd zydock 2>/dev/null; make run
 ```
 
 ## Project Structure

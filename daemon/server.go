@@ -14,6 +14,7 @@ type HookEvent struct {
 	SessionID        string `json:"session_id"`
 	ToolName         string `json:"tool_name"`
 	NotificationType string `json:"notification_type"`
+	CWD              string `json:"cwd"`
 }
 
 // EventServer handles incoming hook HTTP requests.

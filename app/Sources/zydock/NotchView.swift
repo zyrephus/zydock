@@ -118,13 +118,22 @@ struct NotchView: View {
 
             Spacer()
 
-            Text("#\(String(session.id.prefix(6)))")
-                .font(.system(size: 10, weight: .regular, design: .monospaced))
-                .foregroundColor(.white.opacity(0.3))
+            Text(directoryLabel(for: session))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.5))
+                .lineLimit(1)
         }
     }
 
     // MARK: - Helpers
+
+    private func directoryLabel(for session: SessionInfo) -> String {
+        let shortID = "#\(String(session.id.prefix(6)))"
+        if let cwd = session.cwd, !cwd.isEmpty {
+            return "\((cwd as NSString).lastPathComponent) \(shortID)"
+        }
+        return shortID
+    }
 
     private func label(for session: SessionInfo) -> String {
         switch session.state {

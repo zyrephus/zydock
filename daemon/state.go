@@ -21,6 +21,7 @@ type Session struct {
 	ID        string       `json:"session_id"`
 	State     SessionState `json:"state"`
 	ToolName  string       `json:"tool,omitempty"`
+	CWD       string       `json:"cwd,omitempty"`
 	UpdatedAt time.Time    `json:"updated_at"`
 }
 
@@ -29,6 +30,7 @@ type StateUpdate struct {
 	SessionID string       `json:"session_id"`
 	State     SessionState `json:"state"`
 	ToolName  string       `json:"tool,omitempty"`
+	CWD       string       `json:"cwd,omitempty"`
 	Timestamp int64        `json:"ts"`
 }
 
@@ -65,6 +67,11 @@ func (sm *StateManager) HandleEvent(event HookEvent) {
 		sm.sessions[sessionID] = session
 	}
 
+	// Update CWD if provided (only sent on some events)
+	if event.CWD != "" {
+		session.CWD = event.CWD
+	}
+
 	var newState SessionState
 	var toolName string
 
@@ -95,10 +102,12 @@ func (sm *StateManager) HandleEvent(event HookEvent) {
 		newState = StateIdle
 
 	case "SessionEnd":
+		cwd := session.CWD
 		delete(sm.sessions, sessionID)
 		sm.onChange(StateUpdate{
 			SessionID: sessionID,
 			State:     StateDisconnected,
+			CWD:       cwd,
 			Timestamp: time.Now().UnixMilli(),
 		})
 		return
@@ -120,6 +129,7 @@ func (sm *StateManager) HandleEvent(event HookEvent) {
 		SessionID: sessionID,
 		State:     newState,
 		ToolName:  toolName,
+		CWD:       session.CWD,
 		Timestamp: time.Now().UnixMilli(),
 	})
 }
