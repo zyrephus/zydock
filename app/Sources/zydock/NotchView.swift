@@ -49,6 +49,14 @@ struct NotchView: View {
             .shadow(color: .black.opacity(notchState.isExpanded ? 0.6 : 0), radius: 20, y: 10)
             .opacity(notchState.isExpanded ? 1 : 0)
         )
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 26,
+                bottomTrailingRadius: 26,
+                topTrailingRadius: 12
+            )
+        )
         .animation(.spring(response: 0.35, dampingFraction: 0.82), value: notchState.isExpanded)
     }
 

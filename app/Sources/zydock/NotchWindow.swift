@@ -80,6 +80,8 @@ class NotchWindow {
             notchHeight: notchHeight
         )
         let hostingView = NSHostingView(rootView: view)
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = .clear
 
         // Tracking view wraps the hosting view for mouse events
         let tracker = HoverTrackingView()
