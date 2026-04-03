@@ -45,6 +45,7 @@ class NotchWindow {
     private let sessionState = SessionState()
     private let notchState = NotchState()
     private var wsClient: WebSocketClient?
+    private let metricsPoller = MetricsPoller()
 
     private var collapsedFrame: NSRect = .zero
     private var expandedFrame: NSRect = .zero
@@ -77,6 +78,7 @@ class NotchWindow {
         let view = NotchView(
             sessionState: sessionState,
             notchState: notchState,
+            metricsPoller: metricsPoller,
             notchHeight: notchHeight
         )
         let hostingView = NSHostingView(rootView: view)
@@ -119,6 +121,8 @@ class NotchWindow {
 
         wsClient = WebSocketClient(state: sessionState)
         wsClient?.connect()
+
+        metricsPoller.start()
     }
 
     /// Toggle the notch between expanded and collapsed.

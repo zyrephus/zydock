@@ -3,6 +3,7 @@ import SwiftUI
 struct NotchView: View {
     @ObservedObject var sessionState: SessionState
     @ObservedObject var notchState: NotchState
+    @ObservedObject var metricsPoller: MetricsPoller
     let notchHeight: CGFloat
 
     var body: some View {
@@ -13,7 +14,7 @@ struct NotchView: View {
 
                 if notchState.isExpanded {
                     HStack {
-                        Text("Claude Code")
+                        Text("zydock")
                             .font(.system(size: 12, weight: .semibold, design: .monospaced))
                             .foregroundColor(.white)
                             .padding(.leading, 14)
@@ -87,6 +88,16 @@ struct NotchView: View {
             }
             .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))
 
+            // Metrics section
+            if let m = metricsPoller.metrics {
+                Rectangle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(height: 0.5)
+                    .padding(.vertical, 10)
+
+                metricsSection(m)
+            }
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)
@@ -122,6 +133,44 @@ struct NotchView: View {
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundColor(.white.opacity(0.5))
                 .lineLimit(1)
+        }
+    }
+
+    // MARK: - Metrics
+
+    private func metricsSection(_ m: SystemMetrics) -> some View {
+        VStack(spacing: 8) {
+            metricsBar(label: "CPU", value: m.cpuUsage / 100.0, detail: String(format: "%.0f%%", m.cpuUsage), color: .cyan)
+            metricsBar(label: "RAM", value: m.memUsedGB / max(m.memTotalGB, 1), detail: String(format: "%.1f / %.0f GB", m.memUsedGB, m.memTotalGB), color: m.memUsedGB / max(m.memTotalGB, 1) > 0.8 ? .red : .yellow)
+            metricsBar(label: "BAT", value: Double(m.batteryPct) / 100.0, detail: "\(m.batteryPct)%\(m.charging ? " ⚡" : "")", color: .green)
+        }
+    }
+
+    private func metricsBar(label: String, value: Double, detail: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.5))
+                .frame(width: 28, alignment: .leading)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.1))
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(color)
+                        .frame(width: max(geo.size.width * min(value, 1.0), 2), height: 6)
+                        .animation(.easeInOut(duration: 0.5), value: value)
+                }
+            }
+            .frame(height: 6)
+
+            Text(detail)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: 80, alignment: .trailing)
         }
     }
 

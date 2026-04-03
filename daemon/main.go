@@ -20,6 +20,8 @@ func main() {
 	hub = NewHub(state)
 	eventServer := NewEventServer(state)
 
+	collector := NewMetricsCollector()
+
 	// --- HTTP server on :SIX SEVEN SIX SEVEN (receives Claude Code hook events) ---
 	hookMux := http.NewServeMux()
 	hookMux.Handle("/events", eventServer)
@@ -31,6 +33,11 @@ func main() {
 		sessions := state.GetSessions()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(sessions)
+	})
+
+	hookMux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(collector.Snapshot())
 	})
 
 	go func() {

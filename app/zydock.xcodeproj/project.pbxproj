@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FABF96E2AB773DF55947D2BE /* DaemonManager.swift */; };
 		0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E527383BCE478B201140E2C /* NotchWindow.swift */; };
+		12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6288FFA925DB35A479D3513 /* MetricsPoller.swift */; };
 		768752F0489B38247B54E469 /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A391DF33F21D421BDE1D705 /* NotchView.swift */; };
 		7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1276140B25A5B19042DD7B9D /* SessionState.swift */; };
 		94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */; };
@@ -26,6 +27,7 @@
 		7A5583035ACF599FC80ED516 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		9A391DF33F21D421BDE1D705 /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
 		B64ADF17981EA3B57AD74319 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C6288FFA925DB35A479D3513 /* MetricsPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPoller.swift; sourceTree = "<group>"; };
 		CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zydockApp.swift; sourceTree = "<group>"; };
 		FABF96E2AB773DF55947D2BE /* DaemonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -37,6 +39,7 @@
 				FABF96E2AB773DF55947D2BE /* DaemonManager.swift */,
 				7A5583035ACF599FC80ED516 /* HotkeyManager.swift */,
 				229BA93BE95779462BE279AD /* Info.plist */,
+				C6288FFA925DB35A479D3513 /* MetricsPoller.swift */,
 				9A391DF33F21D421BDE1D705 /* NotchView.swift */,
 				1E527383BCE478B201140E2C /* NotchWindow.swift */,
 				1276140B25A5B19042DD7B9D /* SessionState.swift */,
@@ -143,6 +146,7 @@
 			files = (
 				07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */,
 				CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */,
+				12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */,
 				768752F0489B38247B54E469 /* NotchView.swift in Sources */,
 				0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */,
 				7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */,
