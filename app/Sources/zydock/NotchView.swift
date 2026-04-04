@@ -63,6 +63,9 @@ struct NotchView: View {
 
     // MARK: - Expanded Content
 
+    @State private var sessionsExpanded = true
+    @State private var metricsExpanded = true
+
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Separator
@@ -71,22 +74,34 @@ struct NotchView: View {
                 .frame(height: 0.5)
                 .padding(.vertical, 10)
 
-            // Session list or status
-            VStack(alignment: .leading, spacing: 10) {
-                if sessionState.state == .disconnected {
-                    statusRow(color: .gray, text: "daemon offline")
-                        .transition(.opacity)
-                } else if sessionState.activeSessions.isEmpty {
-                    statusRow(color: .green, text: "no active sessions")
-                        .transition(.opacity)
-                } else {
-                    ForEach(sessionState.activeSessions) { session in
-                        sessionRow(session)
-                            .transition(.opacity)
+            // Sessions section
+            sectionHeader("Sessions", isExpanded: $sessionsExpanded)
+
+            if sessionsExpanded {
+                let rowHeight: CGFloat = 18  // approximate height per session row
+                let maxRows: CGFloat = 4
+                let contentHeight = CGFloat(max(sessionState.activeSessions.count, 1)) * rowHeight
+                    + CGFloat(max(sessionState.activeSessions.count - 1, 0)) * 10  // spacing
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if sessionState.state == .disconnected {
+                            statusRow(color: .gray, text: "daemon offline")
+                                .transition(.opacity)
+                        } else if sessionState.activeSessions.isEmpty {
+                            statusRow(color: .green, text: "no active sessions")
+                                .transition(.opacity)
+                        } else {
+                            ForEach(sessionState.activeSessions) { session in
+                                sessionRow(session)
+                                    .transition(.opacity)
+                            }
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))
                 }
+                .frame(height: min(contentHeight, maxRows * (rowHeight + 10)))
             }
-            .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))
 
             // Metrics section
             if let m = metricsPoller.metrics {
@@ -95,13 +110,40 @@ struct NotchView: View {
                     .frame(height: 0.5)
                     .padding(.vertical, 10)
 
-                metricsSection(m)
+                sectionHeader("System", isExpanded: $metricsExpanded)
+
+                if metricsExpanded {
+                    metricsSection(m)
+                }
             }
 
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 16)
+    }
+
+    private func sectionHeader(_ title: String, isExpanded: Binding<Bool>) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isExpanded.wrappedValue.toggle()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .rotationEffect(.degrees(isExpanded.wrappedValue ? 90 : 0))
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.4))
+
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Row Views
