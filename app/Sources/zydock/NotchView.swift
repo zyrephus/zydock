@@ -6,58 +6,59 @@ struct NotchView: View {
     @ObservedObject var metricsPoller: MetricsPoller
     let notchHeight: CGFloat
 
+    private var notchShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 12,
+            bottomLeadingRadius: 26,
+            bottomTrailingRadius: 26,
+            topTrailingRadius: 12
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Notch bar row — text sits on either side of the physical notch bump
-            ZStack {
-                Color.clear.frame(height: notchHeight)
+            // Content group — background and clip hug this, not the full panel
+            VStack(spacing: 0) {
+                // Notch bar row
+                ZStack {
+                    Color.clear.frame(height: notchHeight)
+
+                    if notchState.isExpanded {
+                        HStack {
+                            Text("zydock")
+                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(.leading, 14)
+
+                            Spacer()
+
+                            let count = sessionState.activeSessions.count
+                            Text("\(count) session\(count == 1 ? "" : "s")")
+                                .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.5))
+                                .padding(.trailing, 14)
+                        }
+                        .transition(.opacity)
+                    }
+                }
 
                 if notchState.isExpanded {
-                    HStack {
-                        Text("zydock")
-                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.white)
-                            .padding(.leading, 14)
-
-                        Spacer()
-
-                        let count = sessionState.activeSessions.count
-                        Text("\(count) session\(count == 1 ? "" : "s")")
-                            .font(.system(size: 12, weight: .regular, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(.trailing, 14)
-                    }
-                    .transition(.opacity)
+                    expandedContent
+                        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                 }
             }
+            .background(
+                notchShape
+                    .fill(Color.black)
+                    .shadow(color: .black.opacity(notchState.isExpanded ? 0.6 : 0), radius: 20, y: 10)
+                    .opacity(notchState.isExpanded ? 1 : 0)
+            )
+            .clipShape(notchShape)
 
-            if notchState.isExpanded {
-                expandedContent
-                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-            }
-
+            // Transparent spacer fills rest of panel — keeps content top-anchored
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 12,
-                bottomLeadingRadius: 26,
-                bottomTrailingRadius: 26,
-                topTrailingRadius: 12
-            )
-            .fill(Color.black)
-            .shadow(color: .black.opacity(notchState.isExpanded ? 0.6 : 0), radius: 20, y: 10)
-            .opacity(notchState.isExpanded ? 1 : 0)
-        )
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 12,
-                bottomLeadingRadius: 26,
-                bottomTrailingRadius: 26,
-                topTrailingRadius: 12
-            )
-        )
         .animation(.spring(response: 0.35, dampingFraction: 0.82), value: notchState.isExpanded)
     }
 
@@ -78,29 +79,21 @@ struct NotchView: View {
             sectionHeader("Sessions", isExpanded: $sessionsExpanded)
 
             if sessionsExpanded {
-                let rowHeight: CGFloat = 18  // approximate height per session row
-                let maxRows: CGFloat = 4
-                let contentHeight = CGFloat(max(sessionState.activeSessions.count, 1)) * rowHeight
-                    + CGFloat(max(sessionState.activeSessions.count - 1, 0)) * 10  // spacing
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        if sessionState.state == .disconnected {
-                            statusRow(color: .gray, text: "daemon offline")
+                VStack(alignment: .leading, spacing: 10) {
+                    if sessionState.state == .disconnected {
+                        statusRow(color: .gray, text: "daemon offline")
+                            .transition(.opacity)
+                    } else if sessionState.activeSessions.isEmpty {
+                        statusRow(color: .green, text: "no active sessions")
+                            .transition(.opacity)
+                    } else {
+                        ForEach(sessionState.activeSessions) { session in
+                            sessionRow(session)
                                 .transition(.opacity)
-                        } else if sessionState.activeSessions.isEmpty {
-                            statusRow(color: .green, text: "no active sessions")
-                                .transition(.opacity)
-                        } else {
-                            ForEach(sessionState.activeSessions) { session in
-                                sessionRow(session)
-                                    .transition(.opacity)
-                            }
                         }
                     }
-                    .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))
                 }
-                .frame(height: min(contentHeight, maxRows * (rowHeight + 10)))
+                .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))
             }
 
             // Metrics section
@@ -116,8 +109,6 @@ struct NotchView: View {
                     metricsSection(m)
                 }
             }
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 16)
