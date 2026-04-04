@@ -64,16 +64,15 @@ class NotchWindow {
             height: notchHeight
         )
 
-        // Expanded: fixed max-size panel anchored to screen top.
-        // SwiftUI content + background shape handle the visual sizing;
-        // the panel itself stays this size so the top edge never moves.
+        // Expanded: oversized transparent panel anchored to screen top.
+        // SwiftUI content self-sizes inside this; the panel just needs to
+        // be large enough to contain it and track mouse hover.
         let expandedW: CGFloat = 420
-        let maxContentH: CGFloat = 300
         expandedFrame = NSRect(
             x: sf.midX - expandedW / 2,
-            y: sf.maxY - notchHeight - maxContentH,
+            y: sf.maxY - notchHeight - 300,
             width: expandedW,
-            height: notchHeight + maxContentH
+            height: notchHeight + 300
         )
 
         // SwiftUI view
