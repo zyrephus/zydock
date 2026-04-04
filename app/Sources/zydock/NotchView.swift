@@ -8,10 +8,10 @@ struct NotchView: View {
 
     private var notchShape: UnevenRoundedRectangle {
         UnevenRoundedRectangle(
-            topLeadingRadius: 12,
+            topLeadingRadius: 0,
             bottomLeadingRadius: 26,
             bottomTrailingRadius: 26,
-            topTrailingRadius: 12
+            topTrailingRadius: 0
         )
     }
 
