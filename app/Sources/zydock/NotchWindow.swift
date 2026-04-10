@@ -1,9 +1,11 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// Bridges hover state from AppKit mouse tracking into SwiftUI.
 class NotchState: ObservableObject {
     @Published var isExpanded = false
+    @Published var contentHeight: CGFloat = 0
 }
 
 /// NSView that detects mouse enter/exit via NSTrackingArea.
@@ -30,9 +32,6 @@ class HoverTrackingView: NSView {
     }
 
     override func mouseExited(with event: NSEvent) {
-        // Verify the mouse is actually outside before collapsing.
-        // Spurious mouseExited events fire when the tracking area is
-        // recreated during panel resize, even if the cursor never left.
         let mouseInWindow = window.map { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? false
         if !mouseInWindow {
             onHoverChanged?(false)
@@ -40,53 +39,56 @@ class HoverTrackingView: NSView {
     }
 }
 
+/// NSPanel subclass that can become key without activating the app.
+/// This allows local key event monitoring for tab shortcuts.
+class NotchPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
+
 class NotchWindow {
-    private var panel: NSPanel?
+    private var panel: NotchPanel?
     private let sessionState = SessionState()
     private let notchState = NotchState()
+    private let tabState = TabState()
     private var wsClient: WebSocketClient?
     private let metricsPoller = MetricsPoller()
+    private let nowPlaying = NowPlayingManager()
+    private let trayManager = TrayManager()
+    private var keyMonitor: Any?
+    private var heightObserver: AnyCancellable?
 
     private var collapsedFrame: NSRect = .zero
-    private var expandedFrame: NSRect = .zero
+    private var screenFrame: NSRect = .zero
+    private var notchH: CGFloat = 38
+    private let expandedW: CGFloat = 420
+    private let maxExpandedH: CGFloat = 500
 
     func show() {
         guard let screen = NSScreen.main else { return }
-        let sf = screen.frame
-        let notchHeight = max(screen.safeAreaInsets.top, 38)
+        screenFrame = screen.frame
+        notchH = max(screen.safeAreaInsets.top, 38)
 
-        // Collapsed: invisible hit target covering the notch
-        let collapsedW: CGFloat = 220
+        let collapsedW: CGFloat = 280
         collapsedFrame = NSRect(
-            x: sf.midX - collapsedW / 2,
-            y: sf.maxY - notchHeight,
+            x: screenFrame.midX - collapsedW / 2,
+            y: screenFrame.maxY - notchH,
             width: collapsedW,
-            height: notchHeight
+            height: notchH
         )
 
-        // Expanded: oversized transparent panel anchored to screen top.
-        // SwiftUI content self-sizes inside this; the panel just needs to
-        // be large enough to contain it and track mouse hover.
-        let expandedW: CGFloat = 420
-        expandedFrame = NSRect(
-            x: sf.midX - expandedW / 2,
-            y: sf.maxY - notchHeight - 300,
-            width: expandedW,
-            height: notchHeight + 300
-        )
-
-        // SwiftUI view
         let view = NotchView(
             sessionState: sessionState,
             notchState: notchState,
             metricsPoller: metricsPoller,
-            notchHeight: notchHeight
+            nowPlaying: nowPlaying,
+            trayManager: trayManager,
+            tabState: tabState,
+            notchHeight: notchH
         )
         let hostingView = NSHostingView(rootView: view)
         hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = .clear
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
-        // Tracking view wraps the hosting view for mouse events
         let tracker = HoverTrackingView()
         tracker.onHoverChanged = { [weak self] hovering in
             if hovering {
@@ -96,8 +98,7 @@ class NotchWindow {
             }
         }
 
-        // Panel — borderless, floating, transparent
-        let panel = NSPanel(
+        let panel = NotchPanel(
             contentRect: collapsedFrame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -107,13 +108,13 @@ class NotchWindow {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
+        panel.becomesKeyOnlyIfNeeded = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        // Nest hosting view inside tracking view
         tracker.frame = NSRect(origin: .zero, size: collapsedFrame.size)
-        tracker.autoresizingMask = [.width, .height]
+        tracker.autoresizingMask = [.width, .height] as NSView.AutoresizingMask
         hostingView.frame = tracker.bounds
-        hostingView.autoresizingMask = [.width, .height]
+        hostingView.autoresizingMask = [.width, .height] as NSView.AutoresizingMask
         tracker.addSubview(hostingView)
         panel.contentView = tracker
 
@@ -122,12 +123,13 @@ class NotchWindow {
 
         wsClient = WebSocketClient(state: sessionState)
         wsClient?.connect()
-
         metricsPoller.start()
+        trayManager.start()
+
+        setupKeyMonitor()
+        setupHeightObserver()
     }
 
-    /// Toggle the notch between expanded and collapsed.
-    /// Called by HotkeyManager when the global shortcut fires.
     func toggle() {
         if notchState.isExpanded {
             collapse()
@@ -136,25 +138,96 @@ class NotchWindow {
         }
     }
 
+    private func expandedFrame(for contentHeight: CGFloat) -> NSRect {
+        let h = min(contentHeight, maxExpandedH)
+        return NSRect(
+            x: screenFrame.midX - expandedW / 2,
+            y: screenFrame.maxY - notchH - h,
+            width: expandedW,
+            height: notchH + h
+        )
+    }
+
     private func expand() {
         guard !notchState.isExpanded else { return }
         notchState.isExpanded = true
+        panel?.makeKey()
 
+        let frame = expandedFrame(for: notchState.contentHeight)
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.35
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            self.panel?.animator().setFrame(self.expandedFrame, display: true)
+            self.panel?.animator().setFrame(frame, display: true)
         }
     }
 
     private func collapse() {
         guard notchState.isExpanded else { return }
         notchState.isExpanded = false
+        panel?.resignKey()
 
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.3
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             self.panel?.animator().setFrame(self.collapsedFrame, display: true)
+        }
+    }
+
+    private func setupHeightObserver() {
+        heightObserver = notchState.$contentHeight
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] height in
+                guard let self = self, self.notchState.isExpanded else { return }
+                let frame = self.expandedFrame(for: height)
+                NSAnimationContext.runAnimationGroup { ctx in
+                    ctx.duration = 0.25
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    self.panel?.animator().setFrame(frame, display: true)
+                }
+            }
+    }
+
+    // MARK: - Key Event Monitoring
+
+    private func setupKeyMonitor() {
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self, self.notchState.isExpanded else { return event }
+            guard event.modifierFlags.contains(.command) else { return event }
+
+            let tabs = self.tabState.visibleTabs
+            switch event.charactersIgnoringModifiers {
+            case "1":
+                if tabs.count >= 1 {
+                    withAnimation(.easeInOut(duration: 0.15)) { self.tabState.activeTab = tabs[0] }
+                    return nil
+                }
+            case "2":
+                if tabs.count >= 2 {
+                    withAnimation(.easeInOut(duration: 0.15)) { self.tabState.activeTab = tabs[1] }
+                    return nil
+                }
+            case "3":
+                if tabs.count >= 3 {
+                    withAnimation(.easeInOut(duration: 0.15)) { self.tabState.activeTab = tabs[2] }
+                    return nil
+                }
+            case "[":
+                withAnimation(.easeInOut(duration: 0.15)) { self.tabState.selectPrevious() }
+                return nil
+            case "]":
+                withAnimation(.easeInOut(duration: 0.15)) { self.tabState.selectNext() }
+                return nil
+            default:
+                break
+            }
+            return event
+        }
+    }
+
+    deinit {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
         }
     }
 }

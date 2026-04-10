@@ -10,9 +10,17 @@
 		07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FABF96E2AB773DF55947D2BE /* DaemonManager.swift */; };
 		0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E527383BCE478B201140E2C /* NotchWindow.swift */; };
 		12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6288FFA925DB35A479D3513 /* MetricsPoller.swift */; };
+		4A0F1ADD25BDCAE394C6C302 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0E5D2208F47671DB359055 /* TabBarView.swift */; };
+		53225D1C3A8D3E2B8C847129 /* MusicBarsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179952FDD15EECFE3809B3A8 /* MusicBarsView.swift */; };
+		75EA92A7C348DF277792CA19 /* TrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51741CAF381591222B81FCE7 /* TrayView.swift */; };
 		768752F0489B38247B54E469 /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A391DF33F21D421BDE1D705 /* NotchView.swift */; };
 		7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1276140B25A5B19042DD7B9D /* SessionState.swift */; };
 		94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */; };
+		9B7943065C4BBB8155601D27 /* TrayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACF2964471E6CD392EC2128 /* TrayManager.swift */; };
+		ABAB4BB7F15DB08C1130A90B /* SessionsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A895468203120321A827AED /* SessionsTabView.swift */; };
+		C7760CDB26DAA49B15290825 /* TabModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4446DC240017CEE622D21E09 /* TabModel.swift */; };
+		C9142527EC31A325AC7EA201 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B446F574050478CC1947CD9B /* NowPlayingManager.swift */; };
+		CDD9E9234F3CC5CAEE04DF7A /* HomeTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9433932174AD90A3536CCCB7 /* HomeTabView.swift */; };
 		CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5583035ACF599FC80ED516 /* HotkeyManager.swift */; };
 		EF9053AA507105A0BE41B700 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64ADF17981EA3B57AD74319 /* SettingsView.swift */; };
 		FA5966A057203271E6BEB715 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */; };
@@ -22,14 +30,22 @@
 		001D89A30EDE736AFD72486E /* zydock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = zydock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1276140B25A5B19042DD7B9D /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
 		1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
+		179952FDD15EECFE3809B3A8 /* MusicBarsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBarsView.swift; sourceTree = "<group>"; };
 		1E527383BCE478B201140E2C /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
 		229BA93BE95779462BE279AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3A895468203120321A827AED /* SessionsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsTabView.swift; sourceTree = "<group>"; };
+		4446DC240017CEE622D21E09 /* TabModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabModel.swift; sourceTree = "<group>"; };
+		51741CAF381591222B81FCE7 /* TrayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayView.swift; sourceTree = "<group>"; };
 		7A5583035ACF599FC80ED516 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		9433932174AD90A3536CCCB7 /* HomeTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeTabView.swift; sourceTree = "<group>"; };
 		9A391DF33F21D421BDE1D705 /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
+		B446F574050478CC1947CD9B /* NowPlayingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingManager.swift; sourceTree = "<group>"; };
 		B64ADF17981EA3B57AD74319 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C6288FFA925DB35A479D3513 /* MetricsPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsPoller.swift; sourceTree = "<group>"; };
+		CA0E5D2208F47671DB359055 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
 		CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zydockApp.swift; sourceTree = "<group>"; };
 		FABF96E2AB773DF55947D2BE /* DaemonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonManager.swift; sourceTree = "<group>"; };
+		FACF2964471E6CD392EC2128 /* TrayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -37,13 +53,21 @@
 			isa = PBXGroup;
 			children = (
 				FABF96E2AB773DF55947D2BE /* DaemonManager.swift */,
+				9433932174AD90A3536CCCB7 /* HomeTabView.swift */,
 				7A5583035ACF599FC80ED516 /* HotkeyManager.swift */,
 				229BA93BE95779462BE279AD /* Info.plist */,
 				C6288FFA925DB35A479D3513 /* MetricsPoller.swift */,
+				179952FDD15EECFE3809B3A8 /* MusicBarsView.swift */,
 				9A391DF33F21D421BDE1D705 /* NotchView.swift */,
 				1E527383BCE478B201140E2C /* NotchWindow.swift */,
+				B446F574050478CC1947CD9B /* NowPlayingManager.swift */,
+				3A895468203120321A827AED /* SessionsTabView.swift */,
 				1276140B25A5B19042DD7B9D /* SessionState.swift */,
 				B64ADF17981EA3B57AD74319 /* SettingsView.swift */,
+				CA0E5D2208F47671DB359055 /* TabBarView.swift */,
+				4446DC240017CEE622D21E09 /* TabModel.swift */,
+				FACF2964471E6CD392EC2128 /* TrayManager.swift */,
+				51741CAF381591222B81FCE7 /* TrayView.swift */,
 				1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */,
 				CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */,
 			);
@@ -145,12 +169,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */,
+				CDD9E9234F3CC5CAEE04DF7A /* HomeTabView.swift in Sources */,
 				CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */,
 				12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */,
+				53225D1C3A8D3E2B8C847129 /* MusicBarsView.swift in Sources */,
 				768752F0489B38247B54E469 /* NotchView.swift in Sources */,
 				0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */,
+				C9142527EC31A325AC7EA201 /* NowPlayingManager.swift in Sources */,
 				7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */,
+				ABAB4BB7F15DB08C1130A90B /* SessionsTabView.swift in Sources */,
 				EF9053AA507105A0BE41B700 /* SettingsView.swift in Sources */,
+				4A0F1ADD25BDCAE394C6C302 /* TabBarView.swift in Sources */,
+				C7760CDB26DAA49B15290825 /* TabModel.swift in Sources */,
+				9B7943065C4BBB8155601D27 /* TrayManager.swift in Sources */,
+				75EA92A7C348DF277792CA19 /* TrayView.swift in Sources */,
 				FA5966A057203271E6BEB715 /* WebSocketClient.swift in Sources */,
 				94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */,
 			);

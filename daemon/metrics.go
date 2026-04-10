@@ -10,13 +10,22 @@ import (
 	"time"
 )
 
+type ProcessInfo struct {
+	PID    int     `json:"pid"`
+	Name   string  `json:"name"`
+	CPUPct float64 `json:"cpu_pct"`
+	MemPct float64 `json:"mem_pct"`
+}
+
 type SystemMetrics struct {
-	CPUUsage    float64 `json:"cpu_usage"`
-	MemUsedGB   float64 `json:"mem_used_gb"`
-	MemTotalGB  float64 `json:"mem_total_gb"`
-	BatteryPct  int     `json:"battery_pct"`
-	Charging    bool    `json:"charging"`
-	CollectedAt int64   `json:"collected_at"`
+	CPUUsage    float64       `json:"cpu_usage"`
+	MemUsedGB   float64       `json:"mem_used_gb"`
+	MemTotalGB  float64       `json:"mem_total_gb"`
+	BatteryPct  int           `json:"battery_pct"`
+	Charging    bool          `json:"charging"`
+	CollectedAt int64         `json:"collected_at"`
+	TopCPU      []ProcessInfo `json:"top_cpu"`
+	TopMem      []ProcessInfo `json:"top_mem"`
 }
 
 type MetricsCollector struct {
@@ -55,8 +64,9 @@ func (mc* MetricsCollector) collect() {
 	var m SystemMetrics
 	m.CollectedAt = time.Now().UnixMilli()
 
-	if cpu, err := collectCPU(ctx); err == nil {
+	if cpu, topCPU, err := collectCPU(ctx); err == nil {
 		m.CPUUsage = cpu
+		m.TopCPU = topCPU
 	}
 
 	if used, total, err := collectMemory(ctx); err == nil {
@@ -69,18 +79,106 @@ func (mc* MetricsCollector) collect() {
 		m.Charging = charging
 	}
 
+	if topMem, err := collectTopMem(ctx); err == nil {
+		m.TopMem = topMem
+	}
+
 	mc.mu.Lock()
 	mc.current = m
 	mc.mu.Unlock()
 }
 
-func collectCPU(ctx context.Context) (float64, error) {
-	output, err := exec.CommandContext(ctx, "top", "-l", "1", "-n", "0", "-s", "0").Output()
+func collectCPU(ctx context.Context) (float64, []ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "top", "-l", "1", "-n", "5", "-s", "0", "-stats", "pid,command,cpu").Output()
 	if err != nil {
-		return 0, fmt.Errorf("top: %w", err)
+		return 0, nil, fmt.Errorf("top: %w", err)
 	}
 
-	return parseCPU(string(output))
+	cpu, err := parseCPU(string(output))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	procs := parseTopProcesses(string(output))
+	return cpu, procs, nil
+}
+
+func parseTopProcesses(output string) []ProcessInfo {
+	lines := strings.Split(output, "\n")
+	// Find the "PID" header line, then parse process lines after it
+	headerIdx := -1
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "PID") {
+			headerIdx = i
+			break
+		}
+	}
+	if headerIdx < 0 {
+		return nil
+	}
+
+	var procs []ProcessInfo
+	for _, line := range lines[headerIdx+1:] {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		pid, err := strconv.Atoi(fields[0])
+		if err != nil {
+			continue
+		}
+		cpuStr := strings.TrimSuffix(fields[len(fields)-1], "%")
+		cpuPct, err := strconv.ParseFloat(cpuStr, 64)
+		if err != nil {
+			continue
+		}
+		// Command name is everything between PID and the last field (cpu)
+		name := strings.Join(fields[1:len(fields)-1], " ")
+		procs = append(procs, ProcessInfo{PID: pid, Name: name, CPUPct: cpuPct})
+	}
+	if len(procs) > 5 {
+		procs = procs[:5]
+	}
+	return procs
+}
+
+func collectTopMem(ctx context.Context) ([]ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "ps", "-amcwwwxo", "pid,comm,%mem").Output()
+	if err != nil {
+		return nil, fmt.Errorf("ps: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("no process output")
+	}
+
+	var procs []ProcessInfo
+	for _, line := range lines[1:] { // skip header
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) < 3 {
+			continue
+		}
+		pid, err := strconv.Atoi(fields[0])
+		if err != nil {
+			continue
+		}
+		memPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		if err != nil {
+			continue
+		}
+		name := strings.Join(fields[1:len(fields)-1], " ")
+		procs = append(procs, ProcessInfo{PID: pid, Name: name, MemPct: memPct})
+		if len(procs) >= 5 {
+			break
+		}
+	}
+	return procs, nil
 }
 
 func parseCPU(output string) (float64, error) {
