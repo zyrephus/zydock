@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let openSettings = Notification.Name("openSettings")
+}
+
 private struct ContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -15,6 +19,7 @@ struct NotchView: View {
     @ObservedObject var trayManager: TrayManager
     @ObservedObject var tabState: TabState
     let notchHeight: CGFloat
+    let physicalNotchWidth: CGFloat
 
     private var notchShape: UnevenRoundedRectangle {
         UnevenRoundedRectangle(
@@ -41,13 +46,15 @@ struct NotchView: View {
 
                             Spacer()
 
-                            let count = sessionState.activeSessions.count
-                            if count > 0 {
-                                Text("\(count) session\(count == 1 ? "" : "s")")
-                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                    .foregroundColor(.white.opacity(0.5))
-                                    .padding(.trailing, 14)
+                            Button {
+                                NotificationCenter.default.post(name: .openSettings, object: nil)
+                            } label: {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.4))
                             }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, 14)
                         }
                         .transition(.opacity)
                     } else {
@@ -72,63 +79,82 @@ struct NotchView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: notchState.isExpanded)
+        .animation(.spring(response: 0.2, dampingFraction: 0.9), value: notchState.isExpanded)
     }
 
     // MARK: - Collapsed Content
 
+    /// Content in the ear regions flanking the physical notch.
+    /// Left ear gets the left item, right ear gets the right item.
+    /// The physical notch center is left empty.
     private var collapsedContent: some View {
-        HStack {
-            if nowPlaying.hasMedia {
+        HStack(spacing: 0) {
+            // Left ear
+            leftEar
+                .frame(maxWidth: .infinity)
+
+            // Gap for physical notch
+            Color.clear
+                .frame(width: physicalNotchWidth)
+
+            // Right ear
+            rightEar
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var leftEar: some View {
+        if nowPlaying.hasMedia {
+            HStack(spacing: 6) {
+                Spacer(minLength: 0)
                 if let artwork = nowPlaying.artwork {
                     Image(nsImage: artwork)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .padding(.leading, 14)
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
                 } else {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            Image(systemName: "music.note")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.5))
-                        )
-                        .padding(.leading, 14)
+                    Image(systemName: "music.note")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.5))
                 }
+            }
+            .padding(.trailing, 6)
+        } else if let m = metricsPoller.metrics {
+            Text(String(format: "%.0f%%", m.cpuUsage))
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.cyan)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 6)
+        } else {
+            Color.clear
+        }
+    }
 
-                Spacer()
-
+    @ViewBuilder
+    private var rightEar: some View {
+        if nowPlaying.hasMedia {
+            HStack(spacing: 0) {
                 MusicBarsView(
                     isPlaying: nowPlaying.isPlaying,
-                    barCount: 4,
-                    barWidth: 3,
-                    maxHeight: 14,
-                    spacing: 2,
+                    barCount: 3,
+                    barWidth: 2,
+                    maxHeight: 12,
+                    spacing: 1.5,
                     color: .white.opacity(0.9)
                 )
-                .padding(.trailing, 14)
-            } else if let m = metricsPoller.metrics {
-                Text(String(format: "%.0f%%", m.cpuUsage))
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.cyan)
-                    .padding(.leading, 14)
-
-                Spacer()
-
-                Text("\(m.batteryPct)%\(m.charging ? " \u{26A1}" : "")")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.green)
-                    .padding(.trailing, 14)
-            } else {
-                Text("zydock")
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.5))
-                    .padding(.leading, 14)
-                Spacer()
+                Spacer(minLength: 0)
             }
+            .padding(.leading, 6)
+        } else if let m = metricsPoller.metrics {
+            Text(String(format: "%.1fG", m.memUsedGB))
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.yellow)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 6)
+        } else {
+            Color.clear
         }
     }
 

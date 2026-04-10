@@ -5,6 +5,21 @@ struct SessionsTabView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Session count header
+            HStack {
+                Text("Sessions")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.4))
+
+                Spacer()
+
+                let count = sessionState.activeSessions.count
+                Text("\(count) active")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding(.bottom, 2)
+
             if sessionState.state == .disconnected {
                 statusRow(color: .gray, text: "daemon offline")
                     .transition(.opacity)

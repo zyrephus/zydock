@@ -6,6 +6,7 @@ import SwiftUI
 class NotchState: ObservableObject {
     @Published var isExpanded = false
     @Published var contentHeight: CGFloat = 0
+    var pinnedByHotkey = false
 }
 
 /// NSView that detects mouse enter/exit via NSTrackingArea.
@@ -60,6 +61,7 @@ class NotchWindow {
     private var collapsedFrame: NSRect = .zero
     private var screenFrame: NSRect = .zero
     private var notchH: CGFloat = 38
+    private var notchW: CGFloat = 200
     private let expandedW: CGFloat = 420
     private let maxExpandedH: CGFloat = 500
 
@@ -68,7 +70,13 @@ class NotchWindow {
         screenFrame = screen.frame
         notchH = max(screen.safeAreaInsets.top, 38)
 
-        let collapsedW: CGFloat = 280
+        // Infer physical notch width from auxiliary top-bar windows,
+        // or use a safe default that fits inside the hardware notch.
+        notchW = notchWidth(for: screen)
+
+        // Ears extend past the physical notch on each side
+        let earExtension: CGFloat = 60
+        let collapsedW = notchW + earExtension * 2
         collapsedFrame = NSRect(
             x: screenFrame.midX - collapsedW / 2,
             y: screenFrame.maxY - notchH,
@@ -83,7 +91,8 @@ class NotchWindow {
             nowPlaying: nowPlaying,
             trayManager: trayManager,
             tabState: tabState,
-            notchHeight: notchH
+            notchHeight: notchH,
+            physicalNotchWidth: notchW
         )
         let hostingView = NSHostingView(rootView: view)
         hostingView.wantsLayer = true
@@ -91,10 +100,15 @@ class NotchWindow {
 
         let tracker = HoverTrackingView()
         tracker.onHoverChanged = { [weak self] hovering in
+            guard let self = self else { return }
             if hovering {
-                self?.expand()
+                if !self.notchState.pinnedByHotkey {
+                    self.expand()
+                }
             } else {
-                self?.collapse()
+                if !self.notchState.pinnedByHotkey {
+                    self.collapse()
+                }
             }
         }
 
@@ -132,8 +146,10 @@ class NotchWindow {
 
     func toggle() {
         if notchState.isExpanded {
+            notchState.pinnedByHotkey = false
             collapse()
         } else {
+            notchState.pinnedByHotkey = true
             expand()
         }
     }
@@ -148,14 +164,17 @@ class NotchWindow {
         )
     }
 
+    private var collapseGeneration = 0
+
     private func expand() {
         guard !notchState.isExpanded else { return }
+        collapseGeneration += 1
         notchState.isExpanded = true
         panel?.makeKey()
 
         let frame = expandedFrame(for: notchState.contentHeight)
         NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.35
+            ctx.duration = 0.2
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             self.panel?.animator().setFrame(frame, display: true)
         }
@@ -180,11 +199,7 @@ class NotchWindow {
             .sink { [weak self] height in
                 guard let self = self, self.notchState.isExpanded else { return }
                 let frame = self.expandedFrame(for: height)
-                NSAnimationContext.runAnimationGroup { ctx in
-                    ctx.duration = 0.25
-                    ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                    self.panel?.animator().setFrame(frame, display: true)
-                }
+                self.panel?.setFrame(frame, display: true)
             }
     }
 
@@ -193,7 +208,7 @@ class NotchWindow {
     private func setupKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self, self.notchState.isExpanded else { return event }
-            guard event.modifierFlags.contains(.command) else { return event }
+            guard event.modifierFlags.contains(.option) else { return event }
 
             let tabs = self.tabState.visibleTabs
             switch event.charactersIgnoringModifiers {
@@ -229,5 +244,22 @@ class NotchWindow {
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
         }
+    }
+
+    /// Derive the physical notch width from the menu bar gap.
+    /// On notched MacBooks, `auxiliaryTopLeftArea` and `auxiliaryTopRightArea`
+    /// define the two menu bar segments flanking the notch.
+    private func notchWidth(for screen: NSScreen) -> CGFloat {
+        if #available(macOS 12.0, *) {
+            if let left = screen.auxiliaryTopLeftArea,
+               let right = screen.auxiliaryTopRightArea {
+                let gap = right.minX - left.maxX
+                if gap > 0 {
+                    return gap
+                }
+            }
+        }
+        // Fallback for screens without a notch or older macOS
+        return 200
     }
 }

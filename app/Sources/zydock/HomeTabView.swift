@@ -4,8 +4,8 @@ struct HomeTabView: View {
     @ObservedObject var metricsPoller: MetricsPoller
     @ObservedObject var nowPlaying: NowPlayingManager
 
-    @State private var cpuExpanded = true
-    @State private var ramExpanded = true
+    @State private var cpuExpanded = false
+    @State private var ramExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -20,60 +20,36 @@ struct HomeTabView: View {
             }
 
             if let m = metricsPoller.metrics {
-                // CPU section
+                // CPU section — bar always visible, top-5 collapsible
                 sectionHeader("CPU", isExpanded: $cpuExpanded, detail: String(format: "%.0f%%", m.cpuUsage))
 
-                if cpuExpanded {
-                    metricsBar(value: m.cpuUsage / 100.0, color: .cyan)
-                        .padding(.bottom, 6)
+                metricsBar(value: m.cpuUsage / 100.0, color: .cyan)
+                    .padding(.bottom, 6)
 
-                    if !m.topCPU.isEmpty {
-                        ForEach(m.topCPU) { proc in
-                            processRow(name: proc.name, value: String(format: "%.1f%%", proc.cpuPct), fraction: proc.cpuPct / 100.0, color: .cyan)
-                        }
+                if cpuExpanded && !m.topCPU.isEmpty {
+                    ForEach(m.topCPU) { proc in
+                        processRow(name: proc.name, value: String(format: "%.1f%%", proc.cpuPct))
                     }
                 }
 
-                // RAM section
+                // RAM section — bar always visible, top-5 collapsible
                 Rectangle()
                     .fill(Color.white.opacity(0.08))
                     .frame(height: 0.5)
                     .padding(.vertical, 8)
 
+                let memFrac = m.memUsedGB / max(m.memTotalGB, 1)
                 sectionHeader("RAM", isExpanded: $ramExpanded, detail: String(format: "%.1f / %.0f GB", m.memUsedGB, m.memTotalGB))
 
-                if ramExpanded {
-                    let memFrac = m.memUsedGB / max(m.memTotalGB, 1)
-                    metricsBar(value: memFrac, color: memFrac > 0.8 ? .red : .yellow)
-                        .padding(.bottom, 6)
+                metricsBar(value: memFrac, color: memFrac > 0.8 ? .red : .yellow)
+                    .padding(.bottom, 6)
 
-                    if !m.topMem.isEmpty {
-                        ForEach(m.topMem) { proc in
-                            processRow(name: proc.name, value: String(format: "%.1f%%", proc.memPct), fraction: proc.memPct / 100.0, color: .yellow)
-                        }
+                if ramExpanded && !m.topMem.isEmpty {
+                    ForEach(m.topMem) { proc in
+                        processRow(name: proc.name, value: String(format: "%.1f%%", proc.memPct))
                     }
                 }
 
-                // Battery (simple bar, no per-process)
-                Rectangle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(height: 0.5)
-                    .padding(.vertical, 8)
-
-                HStack(spacing: 8) {
-                    Text("BAT")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.4))
-
-                    Spacer()
-
-                    Text("\(m.batteryPct)%\(m.charging ? " \u{26A1}" : "")")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.green)
-                }
-                .padding(.bottom, 4)
-
-                metricsBar(value: Double(m.batteryPct) / 100.0, color: .green)
             }
         }
     }
@@ -123,7 +99,7 @@ struct HomeTabView: View {
         .frame(height: 4)
     }
 
-    private func processRow(name: String, value: String, fraction: Double, color: Color) -> some View {
+    private func processRow(name: String, value: String) -> some View {
         HStack(spacing: 6) {
             Text(name)
                 .font(.system(size: 10, weight: .regular, design: .monospaced))
@@ -135,14 +111,6 @@ struct HomeTabView: View {
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundColor(.white.opacity(0.5))
                 .frame(width: 42, alignment: .trailing)
-
-            GeometryReader { geo in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(color.opacity(0.5))
-                    .frame(width: max(geo.size.width * min(fraction, 1.0), 1), height: 3)
-                    .animation(.easeInOut(duration: 0.5), value: fraction)
-            }
-            .frame(width: 40, height: 3)
         }
         .frame(height: 16)
     }

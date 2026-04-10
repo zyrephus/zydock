@@ -21,8 +21,6 @@ type SystemMetrics struct {
 	CPUUsage    float64       `json:"cpu_usage"`
 	MemUsedGB   float64       `json:"mem_used_gb"`
 	MemTotalGB  float64       `json:"mem_total_gb"`
-	BatteryPct  int           `json:"battery_pct"`
-	Charging    bool          `json:"charging"`
 	CollectedAt int64         `json:"collected_at"`
 	TopCPU      []ProcessInfo `json:"top_cpu"`
 	TopMem      []ProcessInfo `json:"top_mem"`
@@ -74,10 +72,7 @@ func (mc* MetricsCollector) collect() {
 		m.MemTotalGB = total
 	}
 
-	if pct, charging, err := collectBattery(ctx); err == nil {
-		m.BatteryPct = pct
-		m.Charging = charging
-	}
+
 
 	if topMem, err := collectTopMem(ctx); err == nil {
 		m.TopMem = topMem
@@ -89,7 +84,8 @@ func (mc* MetricsCollector) collect() {
 }
 
 func collectCPU(ctx context.Context) (float64, []ProcessInfo, error) {
-	output, err := exec.CommandContext(ctx, "top", "-l", "1", "-n", "5", "-s", "0", "-stats", "pid,command,cpu").Output()
+	// Aggregate CPU from top (single sample for user+sys totals)
+	output, err := exec.CommandContext(ctx, "top", "-l", "1", "-n", "0", "-s", "0").Output()
 	if err != nil {
 		return 0, nil, fmt.Errorf("top: %w", err)
 	}
@@ -99,32 +95,25 @@ func collectCPU(ctx context.Context) (float64, []ProcessInfo, error) {
 		return 0, nil, err
 	}
 
-	procs := parseTopProcesses(string(output))
+	// Per-process CPU from ps (-r sorts by CPU descending)
+	procs, _ := collectTopCPU(ctx)
 	return cpu, procs, nil
 }
 
-func parseTopProcesses(output string) []ProcessInfo {
-	lines := strings.Split(output, "\n")
-	// Find the "PID" header line, then parse process lines after it
-	headerIdx := -1
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "PID") {
-			headerIdx = i
-			break
-		}
+func collectTopCPU(ctx context.Context) ([]ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "ps", "-arcwwwxo", "pid,comm,%cpu").Output()
+	if err != nil {
+		return nil, fmt.Errorf("ps: %w", err)
 	}
-	if headerIdx < 0 {
-		return nil
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("no process output")
 	}
 
 	var procs []ProcessInfo
-	for _, line := range lines[headerIdx+1:] {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		fields := strings.Fields(line)
+	for _, line := range lines[1:] {
+		fields := strings.Fields(strings.TrimSpace(line))
 		if len(fields) < 3 {
 			continue
 		}
@@ -132,19 +121,17 @@ func parseTopProcesses(output string) []ProcessInfo {
 		if err != nil {
 			continue
 		}
-		cpuStr := strings.TrimSuffix(fields[len(fields)-1], "%")
-		cpuPct, err := strconv.ParseFloat(cpuStr, 64)
+		cpuPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
 		if err != nil {
 			continue
 		}
-		// Command name is everything between PID and the last field (cpu)
 		name := strings.Join(fields[1:len(fields)-1], " ")
 		procs = append(procs, ProcessInfo{PID: pid, Name: name, CPUPct: cpuPct})
+		if len(procs) >= 5 {
+			break
+		}
 	}
-	if len(procs) > 5 {
-		procs = procs[:5]
-	}
-	return procs
+	return procs, nil
 }
 
 func collectTopMem(ctx context.Context) ([]ProcessInfo, error) {
@@ -263,35 +250,3 @@ func parseMemoryPressure(output string, totalGB float64) (float64, error) {
 	return 0, fmt.Errorf("memory free percentage line not found")
 }
 
-// collectBattery returns (percent, charging, error) using pmset.
-func collectBattery(ctx context.Context) (int, bool, error) {
-	output, err := exec.CommandContext(ctx, "pmset", "-g", "batt").Output()
-	if err != nil {
-		return 0, false, fmt.Errorf("pmset: %w", err)
-	}
-	return parseBattery(string(output))
-}
-
-func parseBattery(output string) (int, bool, error) {
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		if !strings.Contains(line, "InternalBattery") {
-			continue
-		}
-		// " -InternalBattery-0 (id=35258467)	77%; charging; 1:39 remaining present: true"
-		// Find the percentage: look for "NN%"
-		parts := strings.Fields(line)
-		for _, part := range parts {
-			if strings.HasSuffix(part, "%;") || strings.HasSuffix(part, "%") {
-				pctStr := strings.TrimRight(part, "%;")
-				pct, err := strconv.Atoi(pctStr)
-				if err != nil {
-					return 0, false, fmt.Errorf("parse battery pct: %w", err)
-				}
-				charging := strings.Contains(line, "charging") && !strings.Contains(line, "discharging")
-				return pct, charging, nil
-			}
-		}
-	}
-	return 0, false, fmt.Errorf("battery line not found")
-}

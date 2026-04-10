@@ -27,8 +27,6 @@ struct SystemMetrics: Codable {
     let cpuUsage: Double
     let memUsedGB: Double
     let memTotalGB: Double
-    let batteryPct: Int
-    let charging: Bool
     let collectedAt: Int64
     let topCPU: [ProcessInfo]
     let topMem: [ProcessInfo]
@@ -37,8 +35,6 @@ struct SystemMetrics: Codable {
         case cpuUsage = "cpu_usage"
         case memUsedGB = "mem_used_gb"
         case memTotalGB = "mem_total_gb"
-        case batteryPct = "battery_pct"
-        case charging
         case collectedAt = "collected_at"
         case topCPU = "top_cpu"
         case topMem = "top_mem"
@@ -49,8 +45,6 @@ struct SystemMetrics: Codable {
         cpuUsage = try container.decode(Double.self, forKey: .cpuUsage)
         memUsedGB = try container.decode(Double.self, forKey: .memUsedGB)
         memTotalGB = try container.decode(Double.self, forKey: .memTotalGB)
-        batteryPct = try container.decode(Int.self, forKey: .batteryPct)
-        charging = try container.decode(Bool.self, forKey: .charging)
         collectedAt = try container.decode(Int64.self, forKey: .collectedAt)
         topCPU = try container.decodeIfPresent([ProcessInfo].self, forKey: .topCPU) ?? []
         topMem = try container.decodeIfPresent([ProcessInfo].self, forKey: .topMem) ?? []

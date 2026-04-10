@@ -26,6 +26,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.notchWindow?.toggle()
         }
         HotkeyManager.shared.start()
+
+        NotificationCenter.default.addObserver(forName: .openSettings, object: nil, queue: .main) { [weak self] _ in
+            self?.openPreferences()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
