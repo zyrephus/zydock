@@ -7,6 +7,14 @@ struct SettingsView: View {
     @State private var currentModifiers: UInt32 = HotkeyManager.defaultModifiers
     @State private var conflicts: [String] = []
     @State private var shortcutDisplay: String = ""
+    @AppStorage("widgetSessionsEnabled") private var sessionsEnabled = false
+
+    private var sessionsToggle: Binding<Bool> {
+        Binding(
+            get: { sessionsEnabled },
+            set: { sessionsEnabled = $0 }
+        )
+    }
 
     var body: some View {
         Form {
@@ -35,9 +43,17 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            Section("Widgets") {
+                Toggle(isOn: sessionsToggle) {
+                    Label("Claude Code Sessions", systemImage: "terminal.fill")
+                }
+                Text("Show Claude Code session status in a dedicated tab")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 380, height: 160)
+        .frame(width: 380, height: 260)
         .onAppear { loadCurrentShortcut() }
     }
 

@@ -1,104 +1,47 @@
 import AppKit
 import SwiftUI
 
-/// Bridges hover state from AppKit mouse tracking into SwiftUI.
-class NotchState: ObservableObject {
-    @Published var isExpanded = false
-}
-
-/// NSView that detects mouse enter/exit via NSTrackingArea.
-/// When the panel resizes, `.inVisibleRect` auto-updates the tracked region.
-class HoverTrackingView: NSView {
-    var onHoverChanged: ((Bool) -> Void)?
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        for area in trackingAreas {
-            removeTrackingArea(area)
-        }
-        let area = NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self,
-            userInfo: nil
-        )
-        addTrackingArea(area)
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        onHoverChanged?(true)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        // Verify the mouse is actually outside before collapsing.
-        // Spurious mouseExited events fire when the tracking area is
-        // recreated during panel resize, even if the cursor never left.
-        let mouseInWindow = window.map { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? false
-        if !mouseInWindow {
-            onHoverChanged?(false)
-        }
-    }
-}
-
-class NotchWindow {
+final class NotchWindow {
     private var panel: NSPanel?
-    private let sessionState = SessionState()
-    private let notchState = NotchState()
-    private var wsClient: WebSocketClient?
-    private let metricsPoller = MetricsPoller()
+    private var host: NSHostingView<NotchView>?
 
-    private var collapsedFrame: NSRect = .zero
-    private var expandedFrame: NSRect = .zero
+    private var screenFrame: NSRect = .zero
+    private var notchH: CGFloat = 32
+    private var notchW: CGFloat = 200
+
+    // Extra width past the hardware notch to widen the hover trigger zone.
+    private let earExtension: CGFloat = 45
+    // Dimensions of the expanded panel.
+    private let expandedW: CGFloat = 500
+    private let expandedH: CGFloat = 150
+
+    private var isExpanded = false
+    private let state = NotchState()
 
     func show() {
-        guard let screen = NSScreen.main else { return }
-        let sf = screen.frame
-        let notchHeight = max(screen.safeAreaInsets.top, 38)
+        guard let screen = Self.notchedScreen() else { return }
+        screenFrame = screen.frame
+        notchH = max(screen.safeAreaInsets.top, 32)
+        notchW = Self.physicalNotchWidth(for: screen)
 
-        // Collapsed: invisible hit target covering the notch
-        let collapsedW: CGFloat = 220
-        collapsedFrame = NSRect(
-            x: sf.midX - collapsedW / 2,
-            y: sf.maxY - notchHeight,
-            width: collapsedW,
-            height: notchHeight
-        )
+        let frame = collapsedFrame()
 
-        // Expanded: oversized transparent panel anchored to screen top.
-        // SwiftUI content self-sizes inside this; the panel just needs to
-        // be large enough to contain it and track mouse hover.
-        let expandedW: CGFloat = 420
-        expandedFrame = NSRect(
-            x: sf.midX - expandedW / 2,
-            y: sf.maxY - notchHeight - 300,
-            width: expandedW,
-            height: notchHeight + 300
-        )
-
-        // SwiftUI view
         let view = NotchView(
-            sessionState: sessionState,
-            notchState: notchState,
-            metricsPoller: metricsPoller,
-            notchHeight: notchHeight
-        )
-        let hostingView = NSHostingView(rootView: view)
-        hostingView.wantsLayer = true
-        hostingView.layer?.backgroundColor = .clear
-
-        // Tracking view wraps the hosting view for mouse events
-        let tracker = HoverTrackingView()
-        tracker.onHoverChanged = { [weak self] hovering in
-            if hovering {
-                self?.expand()
-            } else {
-                self?.collapse()
+            notchHeight: notchH,
+            notchWidth: notchW,
+            earWidth: earExtension,
+            state: state,
+            onHoverChange: { [weak self] entered in
+                entered ? self?.expand() : self?.collapse()
             }
-        }
+        )
+        let host = NSHostingView(rootView: view)
+        host.frame = NSRect(origin: .zero, size: frame.size)
+        host.autoresizingMask = [.width, .height]
+        self.host = host
 
-        // Panel — borderless, floating, transparent
         let panel = NSPanel(
-            contentRect: collapsedFrame,
+            contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -108,53 +51,77 @@ class NotchWindow {
         panel.isOpaque = false
         panel.hasShadow = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-
-        // Nest hosting view inside tracking view
-        tracker.frame = NSRect(origin: .zero, size: collapsedFrame.size)
-        tracker.autoresizingMask = [.width, .height]
-        hostingView.frame = tracker.bounds
-        hostingView.autoresizingMask = [.width, .height]
-        tracker.addSubview(hostingView)
-        panel.contentView = tracker
+        panel.contentView = host
 
         panel.orderFrontRegardless()
         self.panel = panel
-
-        wsClient = WebSocketClient(state: sessionState)
-        wsClient?.connect()
-
-        metricsPoller.start()
     }
 
-    /// Toggle the notch between expanded and collapsed.
-    /// Called by HotkeyManager when the global shortcut fires.
-    func toggle() {
-        if notchState.isExpanded {
-            collapse()
-        } else {
-            expand()
-        }
+    private func collapsedFrame() -> NSRect {
+        let w = notchW + earExtension * 2
+        return NSRect(
+            x: screenFrame.midX - w / 2,
+            y: screenFrame.maxY - notchH,
+            width: w,
+            height: notchH
+        )
+    }
+
+    private func expandedFrame() -> NSRect {
+        NSRect(
+            x: screenFrame.midX - expandedW / 2,
+            y: screenFrame.maxY - notchH - expandedH,
+            width: expandedW,
+            height: notchH + expandedH
+        )
     }
 
     private func expand() {
-        guard !notchState.isExpanded else { return }
-        notchState.isExpanded = true
-
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.35
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            self.panel?.animator().setFrame(self.expandedFrame, display: true)
-        }
+        guard !isExpanded else { return }
+        isExpanded = true
+        withAnimation(.easeInOut(duration: 0.22)) { state.isExpanded = true }
+        animate(to: expandedFrame(), duration: 0.22)
     }
 
     private func collapse() {
-        guard notchState.isExpanded else { return }
-        notchState.isExpanded = false
+        guard isExpanded else { return }
+        isExpanded = false
+        withAnimation(.easeInOut(duration: 0.28)) { state.isExpanded = false }
+        animate(to: collapsedFrame(), duration: 0.28)
+    }
 
+    private func animate(to frame: NSRect, duration: CFTimeInterval) {
         NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.3
+            ctx.duration = duration
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            self.panel?.animator().setFrame(self.collapsedFrame, display: true)
+            panel?.animator().setFrame(frame, display: true)
         }
+    }
+
+    /// Prefer the screen that physically has a notch (safeAreaInsets.top > 0).
+    /// Falls back to the built-in display, then to NSScreen.main.
+    private static func notchedScreen() -> NSScreen? {
+        if #available(macOS 12.0, *) {
+            if let s = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) {
+                return s
+            }
+        }
+        let builtIn = NSScreen.screens.first { screen in
+            guard let n = screen.deviceDescription[
+                NSDeviceDescriptionKey("NSScreenNumber")
+            ] as? CGDirectDisplayID else { return false }
+            return CGDisplayIsBuiltin(n) != 0
+        }
+        return builtIn ?? NSScreen.main
+    }
+
+    private static func physicalNotchWidth(for screen: NSScreen) -> CGFloat {
+        if #available(macOS 12.0, *),
+           let left = screen.auxiliaryTopLeftArea,
+           let right = screen.auxiliaryTopRightArea {
+            let gap = right.minX - left.maxX
+            if gap > 0 { return gap }
+        }
+        return 200
     }
 }

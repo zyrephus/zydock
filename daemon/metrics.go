@@ -10,13 +10,20 @@ import (
 	"time"
 )
 
+type ProcessInfo struct {
+	PID    int     `json:"pid"`
+	Name   string  `json:"name"`
+	CPUPct float64 `json:"cpu_pct"`
+	MemPct float64 `json:"mem_pct"`
+}
+
 type SystemMetrics struct {
-	CPUUsage    float64 `json:"cpu_usage"`
-	MemUsedGB   float64 `json:"mem_used_gb"`
-	MemTotalGB  float64 `json:"mem_total_gb"`
-	BatteryPct  int     `json:"battery_pct"`
-	Charging    bool    `json:"charging"`
-	CollectedAt int64   `json:"collected_at"`
+	CPUUsage    float64       `json:"cpu_usage"`
+	MemUsedGB   float64       `json:"mem_used_gb"`
+	MemTotalGB  float64       `json:"mem_total_gb"`
+	CollectedAt int64         `json:"collected_at"`
+	TopCPU      []ProcessInfo `json:"top_cpu"`
+	TopMem      []ProcessInfo `json:"top_mem"`
 }
 
 type MetricsCollector struct {
@@ -55,8 +62,9 @@ func (mc* MetricsCollector) collect() {
 	var m SystemMetrics
 	m.CollectedAt = time.Now().UnixMilli()
 
-	if cpu, err := collectCPU(ctx); err == nil {
+	if cpu, topCPU, err := collectCPU(ctx); err == nil {
 		m.CPUUsage = cpu
+		m.TopCPU = topCPU
 	}
 
 	if used, total, err := collectMemory(ctx); err == nil {
@@ -64,9 +72,10 @@ func (mc* MetricsCollector) collect() {
 		m.MemTotalGB = total
 	}
 
-	if pct, charging, err := collectBattery(ctx); err == nil {
-		m.BatteryPct = pct
-		m.Charging = charging
+
+
+	if topMem, err := collectTopMem(ctx); err == nil {
+		m.TopMem = topMem
 	}
 
 	mc.mu.Lock()
@@ -74,13 +83,89 @@ func (mc* MetricsCollector) collect() {
 	mc.mu.Unlock()
 }
 
-func collectCPU(ctx context.Context) (float64, error) {
+func collectCPU(ctx context.Context) (float64, []ProcessInfo, error) {
+	// Aggregate CPU from top (single sample for user+sys totals)
 	output, err := exec.CommandContext(ctx, "top", "-l", "1", "-n", "0", "-s", "0").Output()
 	if err != nil {
-		return 0, fmt.Errorf("top: %w", err)
+		return 0, nil, fmt.Errorf("top: %w", err)
 	}
 
-	return parseCPU(string(output))
+	cpu, err := parseCPU(string(output))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Per-process CPU from ps (-r sorts by CPU descending)
+	procs, _ := collectTopCPU(ctx)
+	return cpu, procs, nil
+}
+
+func collectTopCPU(ctx context.Context) ([]ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "ps", "-arcwwwxo", "pid,comm,%cpu").Output()
+	if err != nil {
+		return nil, fmt.Errorf("ps: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("no process output")
+	}
+
+	var procs []ProcessInfo
+	for _, line := range lines[1:] {
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) < 3 {
+			continue
+		}
+		pid, err := strconv.Atoi(fields[0])
+		if err != nil {
+			continue
+		}
+		cpuPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		if err != nil {
+			continue
+		}
+		name := strings.Join(fields[1:len(fields)-1], " ")
+		procs = append(procs, ProcessInfo{PID: pid, Name: name, CPUPct: cpuPct})
+		if len(procs) >= 5 {
+			break
+		}
+	}
+	return procs, nil
+}
+
+func collectTopMem(ctx context.Context) ([]ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "ps", "-amcwwwxo", "pid,comm,%mem").Output()
+	if err != nil {
+		return nil, fmt.Errorf("ps: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("no process output")
+	}
+
+	var procs []ProcessInfo
+	for _, line := range lines[1:] { // skip header
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) < 3 {
+			continue
+		}
+		pid, err := strconv.Atoi(fields[0])
+		if err != nil {
+			continue
+		}
+		memPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		if err != nil {
+			continue
+		}
+		name := strings.Join(fields[1:len(fields)-1], " ")
+		procs = append(procs, ProcessInfo{PID: pid, Name: name, MemPct: memPct})
+		if len(procs) >= 5 {
+			break
+		}
+	}
+	return procs, nil
 }
 
 func parseCPU(output string) (float64, error) {
@@ -165,35 +250,3 @@ func parseMemoryPressure(output string, totalGB float64) (float64, error) {
 	return 0, fmt.Errorf("memory free percentage line not found")
 }
 
-// collectBattery returns (percent, charging, error) using pmset.
-func collectBattery(ctx context.Context) (int, bool, error) {
-	output, err := exec.CommandContext(ctx, "pmset", "-g", "batt").Output()
-	if err != nil {
-		return 0, false, fmt.Errorf("pmset: %w", err)
-	}
-	return parseBattery(string(output))
-}
-
-func parseBattery(output string) (int, bool, error) {
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		if !strings.Contains(line, "InternalBattery") {
-			continue
-		}
-		// " -InternalBattery-0 (id=35258467)	77%; charging; 1:39 remaining present: true"
-		// Find the percentage: look for "NN%"
-		parts := strings.Fields(line)
-		for _, part := range parts {
-			if strings.HasSuffix(part, "%;") || strings.HasSuffix(part, "%") {
-				pctStr := strings.TrimRight(part, "%;")
-				pct, err := strconv.Atoi(pctStr)
-				if err != nil {
-					return 0, false, fmt.Errorf("parse battery pct: %w", err)
-				}
-				charging := strings.Contains(line, "charging") && !strings.Contains(line, "discharging")
-				return pct, charging, nil
-			}
-		}
-	}
-	return 0, false, fmt.Errorf("battery line not found")
-}
