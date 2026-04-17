@@ -3,9 +3,14 @@ import SwiftUI
 /// Notch silhouette: flat top edge flush with the screen, concave arcs at the
 /// top corners that flare outward (mimicking the hardware notch), and convex
 /// rounded corners at the bottom.
-struct NotchShape: Shape {
+struct NotchShape: Shape, Animatable {
     var topCornerRadius: CGFloat = Layout.shapeInset
     var bottomCornerRadius: CGFloat = Layout.bottomCornerRadius
+
+    var animatableData: CGFloat {
+        get { bottomCornerRadius }
+        set { bottomCornerRadius = newValue }
+    }
 
     func path(in rect: CGRect) -> Path {
         var p = Path()

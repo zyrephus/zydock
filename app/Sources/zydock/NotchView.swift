@@ -26,7 +26,7 @@ struct NotchView: View {
     }
 
     var body: some View {
-        NotchShape()
+        NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
             .fill(Color.black)
             .overlay(alignment: .top) {
                 earsLayer
