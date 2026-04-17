@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct NotchSettingsButton: View {
     var size: CGFloat
@@ -6,7 +7,7 @@ struct NotchSettingsButton: View {
 
     var body: some View {
         Button {
-            // no-op placeholder
+            SettingsWindowController.shared.show()
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 14, weight: .semibold))

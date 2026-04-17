@@ -16,6 +16,7 @@ final class NotchWindow {
     private let expandedH: CGFloat = 150
 
     private var isExpanded = false
+    private var pinned = false
     private let state = NotchState()
 
     func show() {
@@ -85,9 +86,19 @@ final class NotchWindow {
 
     private func collapse() {
         guard isExpanded else { return }
+        if pinned { return }
         isExpanded = false
         withAnimation(.easeInOut(duration: 0.28)) { state.isExpanded = false }
         animate(to: collapsedFrame(), duration: 0.28)
+    }
+
+    func togglePinned() {
+        pinned.toggle()
+        if pinned {
+            if !isExpanded { expand() }
+        } else {
+            collapse()
+        }
     }
 
     private func animate(to frame: NSRect, duration: CFTimeInterval) {
