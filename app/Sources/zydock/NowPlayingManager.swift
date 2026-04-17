@@ -1,9 +1,13 @@
 import AppKit
 import Combine
 
-/// Polls Music.app and Spotify via AppleScript for Now Playing info and playback
-/// controls. MediaRemote's C API was locked down on macOS 14.4+, so AppleScript
-/// is the only reliable path for third-party apps without private entitlements.
+/// Receives playback updates from Music.app and Spotify via
+/// DistributedNotificationCenter. Both apps broadcast system-wide notifications
+/// on every state change (play/pause/track/seek), so we subscribe once and
+/// avoid polling. A local 1s timer ticks `elapsedTime` between events, and
+/// AppleScript is reserved for user-initiated commands, seeding state at
+/// launch, and fetching fields the notifications don't carry (Music position,
+/// Music artwork bytes).
 class NowPlayingManager: ObservableObject {
     @Published var title: String = ""
     @Published var artist: String = ""
@@ -17,20 +21,45 @@ class NowPlayingManager: ObservableObject {
     private enum Source: String {
         case music = "Music"
         case spotify = "Spotify"
+
+        var bundleID: String {
+            switch self {
+            case .music:   return "com.apple.Music"
+            case .spotify: return "com.spotify.client"
+            }
+        }
+
+        var notificationName: Notification.Name {
+            switch self {
+            case .music:   return Notification.Name("com.apple.Music.playerInfo")
+            case .spotify: return Notification.Name("com.spotify.client.PlaybackStateChanged")
+            }
+        }
     }
 
     private var activeSource: Source?
-    private var pollTimer: Timer?
     private var progressTimer: Timer?
-    private let artworkPath = NSTemporaryDirectory() + "zydock_art.dat"
     private var lastArtworkKey: String = ""
 
     init() {
-        startPolling()
+        let dnc = DistributedNotificationCenter.default()
+        dnc.addObserver(
+            self,
+            selector: #selector(handleMusicNotification(_:)),
+            name: Source.music.notificationName,
+            object: nil
+        )
+        dnc.addObserver(
+            self,
+            selector: #selector(handleSpotifyNotification(_:)),
+            name: Source.spotify.notificationName,
+            object: nil
+        )
+        seedFromRunningApps()
     }
 
     deinit {
-        pollTimer?.invalidate()
+        DistributedNotificationCenter.default().removeObserver(self)
         progressTimer?.invalidate()
     }
 
@@ -41,23 +70,20 @@ class NowPlayingManager: ObservableObject {
         sendCommand("playpause", to: source)
         isPlaying.toggle()
         updateProgressTimer()
-        scheduleRefresh(after: 0.25)
     }
 
     func nextTrack() {
         guard let source = activeSource else { return }
         sendCommand("next track", to: source)
-        scheduleRefresh(after: 0.4)
     }
 
     func previousTrack() {
         guard let source = activeSource else { return }
         sendCommand("previous track", to: source)
-        scheduleRefresh(after: 0.4)
     }
 
-    /// Optimistically update `elapsedTime` while the user drags the scrubber.
-    /// Suspends the progress timer so it doesn't tug the value back.
+    /// Optimistic update while the user drags the scrubber; progress timer
+    /// is suspended so it doesn't tug the value back.
     func scrub(fraction: Double) {
         guard duration > 0 else { return }
         elapsedTime = max(0, min(duration, fraction * duration))
@@ -65,8 +91,7 @@ class NowPlayingManager: ObservableObject {
         progressTimer = nil
     }
 
-    /// Commit a scrub: send the seek command to the active player and restart
-    /// the progress timer if we're still playing.
+    /// Commit a scrub: seek the active player and resume progress ticking.
     func seek(fraction: Double) {
         guard let source = activeSource, duration > 0 else { return }
         let seconds = max(0, min(duration, fraction * duration))
@@ -76,40 +101,109 @@ class NowPlayingManager: ObservableObject {
             _ = Self.runAppleScript(script)
         }
         updateProgressTimer()
-        scheduleRefresh(after: 0.3)
     }
 
-    // MARK: - Polling
+    // MARK: - Distributed notification handlers
 
-    private func startPolling() {
-        poll()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.poll()
+    @objc private func handleMusicNotification(_ note: Notification) {
+        guard let info = note.userInfo else { return }
+        let state = (info["Player State"] as? String) ?? "Stopped"
+        // Don't let a non-Playing event from a background source steal focus.
+        if let current = activeSource, current != .music, state != "Playing" { return }
+        if state == "Stopped" {
+            if activeSource == .music { clear() }
+            return
+        }
+        activeSource = .music
+        title  = (info["Name"]   as? String) ?? ""
+        artist = (info["Artist"] as? String) ?? ""
+        album  = (info["Album"]  as? String) ?? ""
+        // "Total Time" is milliseconds (NSNumber bridges to Double).
+        let totalMs = (info["Total Time"] as? Double) ?? 0
+        duration = totalMs / 1000.0
+        isPlaying = (state == "Playing")
+        hasMedia  = !title.isEmpty
+        let persistentID = (info["Persistent ID"] as? String) ?? title
+        refreshArtworkIfNeeded(source: .music, key: "music|\(persistentID)", spotifyURL: nil)
+        // Music notifications don't carry position; fetch once per state change.
+        fetchPosition(from: .music)
+        updateProgressTimer()
+    }
+
+    @objc private func handleSpotifyNotification(_ note: Notification) {
+        guard let info = note.userInfo else { return }
+        let state = (info["Player State"] as? String) ?? "Stopped"
+        if let current = activeSource, current != .spotify, state != "Playing" { return }
+        if state == "Stopped" {
+            if activeSource == .spotify { clear() }
+            return
+        }
+        activeSource = .spotify
+        title  = (info["Name"]   as? String) ?? ""
+        artist = (info["Artist"] as? String) ?? ""
+        album  = (info["Album"]  as? String) ?? ""
+        // Spotify "Duration" is milliseconds.
+        let durMs = (info["Duration"] as? Double) ?? 0
+        duration = durMs / 1000.0
+        isPlaying = (state == "Playing")
+        hasMedia  = !title.isEmpty
+        let trackID = (info["Track ID"] as? String) ?? title
+        let artworkURL = info["Artwork URL"] as? String
+        refreshArtworkIfNeeded(source: .spotify, key: "spotify|\(trackID)", spotifyURL: artworkURL)
+        if let pos = info["Playback Position"] as? Double {
+            elapsedTime = pos
+        } else {
+            fetchPosition(from: .spotify)
+        }
+        updateProgressTimer()
+    }
+
+    private func clear() {
+        activeSource = nil
+        title = ""
+        artist = ""
+        album = ""
+        duration = 0
+        elapsedTime = 0
+        isPlaying = false
+        hasMedia = false
+        artwork = nil
+        lastArtworkKey = ""
+        progressTimer?.invalidate()
+        progressTimer = nil
+    }
+
+    // MARK: - Progress timer
+
+    private func updateProgressTimer() {
+        progressTimer?.invalidate()
+        progressTimer = nil
+        guard isPlaying, duration > 0 else { return }
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isPlaying else { return }
+            self.elapsedTime = min(self.elapsedTime + 1.0, self.duration)
         }
     }
 
-    private func scheduleRefresh(after delay: TimeInterval) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.poll()
-        }
-    }
+    // MARK: - Launch-time seed
 
-    private func poll() {
+    /// Distributed notifications are fire-and-forget, so if a music app was
+    /// already running when we launched, we'd miss its current state until the
+    /// next play/pause. One AppleScript snapshot at init closes that gap.
+    private func seedFromRunningApps() {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self = self else { return }
-            if let info = Self.queryMusic() {
-                DispatchQueue.main.async { self.apply(info, source: .music) }
+            if Self.isRunning(bundleID: Source.music.bundleID),
+               let snap = Self.appleScriptSnapshot(source: .music) {
+                DispatchQueue.main.async { self.applySnapshot(snap, source: .music) }
                 return
             }
-            if let info = Self.querySpotify() {
-                DispatchQueue.main.async { self.apply(info, source: .spotify) }
-                return
+            if Self.isRunning(bundleID: Source.spotify.bundleID),
+               let snap = Self.appleScriptSnapshot(source: .spotify) {
+                DispatchQueue.main.async { self.applySnapshot(snap, source: .spotify) }
             }
-            DispatchQueue.main.async { self.clear() }
         }
     }
-
-    // MARK: - AppleScript
 
     private struct Snapshot {
         let title: String
@@ -120,12 +214,33 @@ class NowPlayingManager: ObservableObject {
         let isPlaying: Bool
     }
 
-    private static func queryMusic() -> Snapshot? {
+    private func applySnapshot(_ snap: Snapshot, source: Source) {
+        guard !snap.title.isEmpty else { return }
+        activeSource = source
+        title = snap.title
+        artist = snap.artist
+        album = snap.album
+        duration = snap.duration
+        elapsedTime = snap.position
+        isPlaying = snap.isPlaying
+        hasMedia = true
+        updateProgressTimer()
+        let key = "\(source.rawValue)|\(snap.title)|\(snap.album)|\(snap.artist)"
+        if key != lastArtworkKey {
+            lastArtworkKey = key
+            fetchArtworkViaAppleScript(source: source)
+        }
+    }
+
+    // MARK: - AppleScript helpers
+
+    private static func isRunning(bundleID: String) -> Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
+    }
+
+    private static func appleScriptSnapshot(source: Source) -> Snapshot? {
         let script = """
-        tell application "System Events"
-            if not (exists process "Music") then return ""
-        end tell
-        tell application "Music"
+        tell application "\(source.rawValue)"
             try
                 if player state is stopped then return ""
                 set t to name of current track
@@ -140,47 +255,43 @@ class NowPlayingManager: ObservableObject {
             end try
         end tell
         """
-        return runAndParse(script)
-    }
-
-    private static func querySpotify() -> Snapshot? {
-        // Spotify reports duration in milliseconds; convert to seconds.
-        let script = """
-        tell application "System Events"
-            if not (exists process "Spotify") then return ""
-        end tell
-        tell application "Spotify"
-            try
-                if player state is stopped then return ""
-                set t to name of current track
-                set a to artist of current track
-                set al to album of current track
-                set d to (duration of current track) / 1000
-                set p to player position
-                set s to player state as text
-                return t & "\\n" & a & "\\n" & al & "\\n" & d & "\\n" & p & "\\n" & s
-            on error
-                return ""
-            end try
-        end tell
-        """
-        return runAndParse(script)
-    }
-
-    private static func runAndParse(_ source: String) -> Snapshot? {
-        guard let output = runAppleScript(source),
-              !output.isEmpty else { return nil }
+        guard let output = runAppleScript(script), !output.isEmpty else { return nil }
         let parts = output.components(separatedBy: "\n")
         guard parts.count >= 6 else { return nil }
         let state = parts[5].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let rawDuration = Double(parts[3]) ?? 0
+        // Music's scripting dictionary returns duration in seconds; Spotify's in ms.
+        let durSeconds = source == .spotify ? rawDuration / 1000.0 : rawDuration
         return Snapshot(
             title: parts[0],
             artist: parts[1],
             album: parts[2],
-            duration: Double(parts[3]) ?? 0,
+            duration: durSeconds,
             position: Double(parts[4]) ?? 0,
             isPlaying: state.contains("playing")
         )
+    }
+
+    private func fetchPosition(from source: Source) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let script = """
+            tell application "\(source.rawValue)"
+                try
+                    return (player position as text)
+                on error
+                    return ""
+                end try
+            end tell
+            """
+            guard let output = Self.runAppleScript(script),
+                  let pos = Double(output.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                return
+            }
+            DispatchQueue.main.async {
+                guard let self = self, self.activeSource == source else { return }
+                self.elapsedTime = pos
+            }
+        }
     }
 
     private static func runAppleScript(_ source: String) -> String? {
@@ -198,110 +309,87 @@ class NowPlayingManager: ObservableObject {
         }
     }
 
-    // MARK: - State
-
-    private func apply(_ snap: Snapshot, source: Source) {
-        activeSource = source
-        title = snap.title
-        artist = snap.artist
-        album = snap.album
-        duration = snap.duration
-        elapsedTime = snap.position
-        isPlaying = snap.isPlaying
-        hasMedia = !snap.title.isEmpty
-        updateProgressTimer()
-        refreshArtwork(for: source, trackKey: "\(snap.title)|\(snap.album)|\(snap.artist)")
-    }
-
-    private func clear() {
-        guard hasMedia || !title.isEmpty else { return }
-        activeSource = nil
-        title = ""
-        artist = ""
-        album = ""
-        duration = 0
-        elapsedTime = 0
-        isPlaying = false
-        hasMedia = false
-        artwork = nil
-        lastArtworkKey = ""
-        progressTimer?.invalidate()
-        progressTimer = nil
-    }
-
-    private func updateProgressTimer() {
-        progressTimer?.invalidate()
-        progressTimer = nil
-        guard isPlaying, duration > 0 else { return }
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self, self.isPlaying else { return }
-            self.elapsedTime = min(self.elapsedTime + 1.0, self.duration)
-        }
-    }
-
     // MARK: - Artwork
 
-    private func refreshArtwork(for source: Source, trackKey: String) {
-        guard trackKey != lastArtworkKey else { return }
-        lastArtworkKey = trackKey
-        let path = artworkPath
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            let image = Self.fetchArtwork(source: source, tempPath: path)
-            DispatchQueue.main.async {
-                self?.artwork = image
+    private func refreshArtworkIfNeeded(source: Source, key: String, spotifyURL: String?) {
+        guard key != lastArtworkKey else { return }
+        lastArtworkKey = key
+        switch source {
+        case .spotify:
+            if let urlString = spotifyURL, let url = URL(string: urlString) {
+                DispatchQueue.global(qos: .utility).async { [weak self] in
+                    guard let data = try? Data(contentsOf: url),
+                          let image = NSImage(data: data) else { return }
+                    DispatchQueue.main.async {
+                        guard let self = self, self.lastArtworkKey == key else { return }
+                        self.artwork = image
+                    }
+                }
+            } else {
+                fetchArtworkViaAppleScript(source: .spotify)
             }
+        case .music:
+            fetchArtworkViaAppleScript(source: .music)
         }
     }
 
-    private static func fetchArtwork(source: Source, tempPath: String) -> NSImage? {
-        // Music.app exposes `raw data` on artwork; Spotify exposes `artwork url`.
-        switch source {
-        case .music:
-            let script = """
-            tell application "Music"
-                try
-                    set artData to raw data of artwork 1 of current track
-                    set tmpFile to POSIX file "\(tempPath)"
-                    try
-                        set f to open for access tmpFile with write permission
-                        set eof of f to 0
-                        write artData to f
-                        close access f
-                        return "\(tempPath)"
-                    on error
+    private func fetchArtworkViaAppleScript(source: Source) {
+        let key = lastArtworkKey
+        let tempPath = NSTemporaryDirectory() + "zydock_art.dat"
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let image: NSImage? = {
+                switch source {
+                case .music:
+                    let script = """
+                    tell application "Music"
                         try
-                            close access tmpFile
+                            set artData to raw data of artwork 1 of current track
+                            set tmpFile to POSIX file "\(tempPath)"
+                            try
+                                set f to open for access tmpFile with write permission
+                                set eof of f to 0
+                                write artData to f
+                                close access f
+                                return "\(tempPath)"
+                            on error
+                                try
+                                    close access tmpFile
+                                end try
+                                return ""
+                            end try
+                        on error
+                            return ""
                         end try
-                        return ""
-                    end try
-                on error
-                    return ""
-                end try
-            end tell
-            """
-            guard let path = runAppleScript(script), !path.isEmpty,
-                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
-                return nil
+                    end tell
+                    """
+                    guard let path = Self.runAppleScript(script), !path.isEmpty,
+                          let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+                        return nil
+                    }
+                    return NSImage(data: data)
+                case .spotify:
+                    let script = """
+                    tell application "Spotify"
+                        try
+                            return artwork url of current track
+                        on error
+                            return ""
+                        end try
+                    end tell
+                    """
+                    guard let urlString = Self.runAppleScript(script),
+                          !urlString.isEmpty,
+                          let url = URL(string: urlString),
+                          let data = try? Data(contentsOf: url) else {
+                        return nil
+                    }
+                    return NSImage(data: data)
+                }
+            }()
+            DispatchQueue.main.async {
+                guard let self = self, self.lastArtworkKey == key else { return }
+                self.artwork = image
             }
-            return NSImage(data: data)
-
-        case .spotify:
-            let script = """
-            tell application "Spotify"
-                try
-                    return artwork url of current track
-                on error
-                    return ""
-                end try
-            end tell
-            """
-            guard let urlString = runAppleScript(script),
-                  !urlString.isEmpty,
-                  let url = URL(string: urlString),
-                  let data = try? Data(contentsOf: url) else {
-                return nil
-            }
-            return NSImage(data: data)
         }
     }
 }

@@ -5,7 +5,7 @@ struct NotchTabBar: View {
     var itemSize: CGFloat
     @Namespace private var ns
 
-    private let icons: [String] = ["house.fill", "square.grid.2x2.fill"]
+    private let icons: [String] = ["house.fill", "terminal.fill"]
     private let spacing: CGFloat = 4
 
     var body: some View {
@@ -25,8 +25,9 @@ struct NotchTabBar: View {
         } label: {
             ZStack {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.16))
+                    Capsule()
+                        .fill(Color.white.opacity(0.14))
+                        .padding(.vertical, 5)
                         .matchedGeometryEffect(id: "tabPill", in: ns)
                 }
                 Image(systemName: icons[i])
@@ -38,7 +39,7 @@ struct NotchTabBar: View {
                     )
             }
             .frame(width: itemSize, height: itemSize)
-            .contentShape(RoundedRectangle(cornerRadius: 4))
+            .contentShape(Capsule())
         }
         .buttonStyle(NotchPressStyle())
     }
