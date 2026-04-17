@@ -11,16 +11,12 @@ struct AlbumArtView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {
-                LinearGradient(
-                    colors: [.purple, .pink, .orange],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay(
-                    Image(systemName: "music.note")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white.opacity(0.9))
-                )
+                Color(white: 0.25)
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.5))
+                    )
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
