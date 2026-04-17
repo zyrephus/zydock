@@ -12,6 +12,7 @@
 		0EAD347D0FC945F05C924293 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E527383BCE478B201140E2C /* NotchWindow.swift */; };
 		12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6288FFA925DB35A479D3513 /* MetricsPoller.swift */; };
 		2AC3A72A5B68CCD50F7AFE49 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2412F32900A9B4C3C1261994 /* NotchShape.swift */; };
+		3F06E5A0F6269BC0CF22BD08 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C57E3201338CAF1BC5A1530 /* Typography.swift */; };
 		49E2D96B81F3B46DA1F43474 /* TabContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9251AC80D7B93107A96A7F82 /* TabContentView.swift */; };
 		535D96BE5ECC1AB9BB00B0FF /* NotchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE70585832EF416C9A48B245 /* NotchState.swift */; };
 		768752F0489B38247B54E469 /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A391DF33F21D421BDE1D705 /* NotchView.swift */; };
@@ -35,6 +36,7 @@
 		229BA93BE95779462BE279AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2412F32900A9B4C3C1261994 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		2EF5B51BB57A1AA1AB149485 /* NotchSettingsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsButton.swift; sourceTree = "<group>"; };
+		6C57E3201338CAF1BC5A1530 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		7A5583035ACF599FC80ED516 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		9251AC80D7B93107A96A7F82 /* TabContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabContentView.swift; sourceTree = "<group>"; };
 		9A391DF33F21D421BDE1D705 /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 				1276140B25A5B19042DD7B9D /* SessionState.swift */,
 				9251AC80D7B93107A96A7F82 /* TabContentView.swift */,
 				FACF2964471E6CD392EC2128 /* TrayManager.swift */,
+				6C57E3201338CAF1BC5A1530 /* Typography.swift */,
 				1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */,
 				CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */,
 			);
@@ -183,6 +186,7 @@
 				7CB4D83664750F4A9163A75D /* SessionState.swift in Sources */,
 				49E2D96B81F3B46DA1F43474 /* TabContentView.swift in Sources */,
 				9B7943065C4BBB8155601D27 /* TrayManager.swift in Sources */,
+				3F06E5A0F6269BC0CF22BD08 /* Typography.swift in Sources */,
 				FA5966A057203271E6BEB715 /* WebSocketClient.swift in Sources */,
 				94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */,
 			);

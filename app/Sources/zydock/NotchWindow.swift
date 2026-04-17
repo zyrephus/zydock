@@ -12,7 +12,7 @@ final class NotchWindow {
     // Extra width past the hardware notch to widen the hover trigger zone.
     private let earExtension: CGFloat = 45
     // Dimensions of the expanded panel.
-    private let expandedW: CGFloat = 500
+    private let expandedW: CGFloat = 550
     private let expandedH: CGFloat = 150
 
     private var isExpanded = false

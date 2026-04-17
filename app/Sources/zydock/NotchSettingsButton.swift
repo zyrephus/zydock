@@ -9,7 +9,7 @@ struct NotchSettingsButton: View {
             // no-op placeholder
         } label: {
             Image(systemName: "gearshape.fill")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(hovering ? 0.95 : 0.7))
             .frame(width: size, height: size)
             .contentShape(Capsule())
