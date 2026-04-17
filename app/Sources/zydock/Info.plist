@@ -20,5 +20,8 @@
     <!-- Needed to draw above other windows -->
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <!-- Lets zydock query Music.app / Spotify for Now Playing info via AppleScript -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>zydock reads Now Playing info (title, artist, playback position) from Music and Spotify.</string>
 </dict>
 </plist>

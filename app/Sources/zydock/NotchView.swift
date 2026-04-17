@@ -7,6 +7,9 @@ struct NotchView: View {
     @ObservedObject var state: NotchState
     var onHoverChange: (Bool) -> Void = { _ in }
 
+    @StateObject private var nowPlaying = NowPlayingManager()
+    @StateObject private var metrics = MetricsPoller()
+
     // Must match NotchShape's topCornerRadius: the shape's vertical side
     // sits inset by this much, so the ear's visible interior starts there.
     private let shapeSideInset: CGFloat = 10
@@ -36,24 +39,26 @@ struct NotchView: View {
                     .opacity(state.isExpanded ? 1 : 0)
                     .allowsHitTesting(state.isExpanded)
             }
-            .overlay(alignment: .bottom) {
-                TabContentView(selectedTab: state.selectedTab)
+            .overlay(alignment: .top) {
+                TabContentView(selectedTab: state.selectedTab, nowPlaying: nowPlaying, metrics: metrics)
+                    .padding(.top, notchHeight)
                     .opacity(state.isExpanded ? 1 : 0)
                     .allowsHitTesting(state.isExpanded)
             }
             .contentShape(Rectangle())
             .onHover { onHoverChange($0) }
+            .onAppear { metrics.start() }
     }
 
     private var earsLayer: some View {
         HStack(spacing: 0) {
-            AlbumArtView()
+            AlbumArtView(image: nowPlaying.artwork)
                 .frame(width: artSize, height: artSize)
                 .padding(.leading, artLeadingPad)
 
             Spacer(minLength: 0)
 
-            MusicWaveView()
+            MusicWaveView(isPlaying: nowPlaying.isPlaying)
                 .frame(width: waveWidth, height: waveHeight)
                 .padding(.trailing, waveTrailingPad)
         }
@@ -68,9 +73,14 @@ struct NotchView: View {
 
             Color.clear.frame(width: notchWidth)
 
-            NotchSettingsButton(size: artSize)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, shapeSideInset + 8)
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                MusicWaveView(isPlaying: nowPlaying.isPlaying)
+                    .frame(width: waveWidth, height: waveHeight)
+                NotchSettingsButton(size: artSize)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, shapeSideInset + 8)
         }
         .frame(height: notchHeight)
     }

@@ -25,12 +25,12 @@ struct NotchTabBar: View {
         } label: {
             ZStack {
                 if isSelected {
-                    Capsule()
+                    RoundedRectangle(cornerRadius: 4)
                         .fill(Color.white.opacity(0.16))
                         .matchedGeometryEffect(id: "tabPill", in: ns)
                 }
                 Image(systemName: icons[i])
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(
                         isSelected
                             ? Color.white
@@ -38,7 +38,7 @@ struct NotchTabBar: View {
                     )
             }
             .frame(width: itemSize, height: itemSize)
-            .contentShape(Capsule())
+            .contentShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(NotchPressStyle())
     }
@@ -47,9 +47,9 @@ struct NotchTabBar: View {
 struct NotchPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .animation(.spring(response: 0.22, dampingFraction: 0.7),
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7),
                        value: configuration.isPressed)
     }
 }
