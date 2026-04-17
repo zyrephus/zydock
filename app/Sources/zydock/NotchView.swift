@@ -5,14 +5,13 @@ struct NotchView: View {
     var notchWidth: CGFloat
     var earWidth: CGFloat
     @ObservedObject var state: NotchState
-    var onHoverChange: (Bool) -> Void = { _ in }
 
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
+    @StateObject private var sessionState = SessionState()
+    @State private var wsClient: WebSocketClient?
 
-    // Must match NotchShape's topCornerRadius: the shape's vertical side
-    // sits inset by this much, so the ear's visible interior starts there.
-    private let shapeSideInset: CGFloat = 10
+    private let shapeSideInset: CGFloat = Layout.shapeInset
 
     private var artSize: CGFloat { notchHeight - 10 }
     private var waveWidth: CGFloat { earWidth * 0.5 }
@@ -20,10 +19,10 @@ struct NotchView: View {
 
     private var earInteriorWidth: CGFloat { earWidth - shapeSideInset }
     private var artLeadingPad: CGFloat {
-        shapeSideInset + max(0, (earInteriorWidth - artSize) / 2)
+        shapeSideInset + max(0, (earInteriorWidth - artSize) / 2) + Layout.earInwardNudge
     }
     private var waveTrailingPad: CGFloat {
-        shapeSideInset + max(0, (earInteriorWidth - waveWidth) / 2)
+        shapeSideInset + max(0, (earInteriorWidth - waveWidth) / 2) + Layout.earInwardNudge
     }
 
     var body: some View {
@@ -40,14 +39,24 @@ struct NotchView: View {
                     .allowsHitTesting(state.isExpanded)
             }
             .overlay(alignment: .top) {
-                TabContentView(selectedTab: state.selectedTab, nowPlaying: nowPlaying, metrics: metrics)
+                TabContentView(
+                    selectedTab: state.selectedTab,
+                    nowPlaying: nowPlaying,
+                    metrics: metrics,
+                    sessionState: sessionState
+                )
                     .padding(.top, notchHeight)
                     .opacity(state.isExpanded ? 1 : 0)
                     .allowsHitTesting(state.isExpanded)
             }
-            .contentShape(Rectangle())
-            .onHover { onHoverChange($0) }
-            .onAppear { metrics.start() }
+            .onAppear {
+                metrics.start()
+                if wsClient == nil {
+                    let client = WebSocketClient(state: sessionState)
+                    wsClient = client
+                    client.connect()
+                }
+            }
     }
 
     private var earsLayer: some View {
@@ -69,7 +78,7 @@ struct NotchView: View {
         HStack(spacing: 0) {
             NotchTabBar(selected: $state.selectedTab, itemSize: artSize)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, shapeSideInset + 8)
+                .padding(.leading, Layout.horizontalPadding)
 
             Color.clear.frame(width: notchWidth)
 
@@ -80,7 +89,7 @@ struct NotchView: View {
                 NotchSettingsButton(size: artSize)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, shapeSideInset + 8)
+            .padding(.trailing, Layout.horizontalPadding)
         }
         .frame(height: notchHeight)
     }

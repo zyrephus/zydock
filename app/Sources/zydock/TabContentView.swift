@@ -4,6 +4,7 @@ struct TabContentView: View {
     var selectedTab: Int
     @ObservedObject var nowPlaying: NowPlayingManager
     @ObservedObject var metrics: MetricsPoller
+    @ObservedObject var sessionState: SessionState
 
     var body: some View {
         ZStack {
@@ -11,12 +12,11 @@ struct TabContentView: View {
             case 0:
                 HomeView(nowPlaying: nowPlaying, metrics: metrics)
                     .transition(transition)
-            default:
-                Text("Tab 2")
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.85))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case 1:
+                ClaudeCodeView(sessionState: sessionState)
                     .transition(transition)
+            default:
+                EmptyView()
             }
         }
         .animation(.spring(response: 0.34, dampingFraction: 0.82), value: selectedTab)
@@ -35,7 +35,7 @@ struct HomeView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let available = geo.size.width - 36 - 1
+            let available = geo.size.width - Layout.horizontalPadding * 2 - 1
             HStack(spacing: 0) {
                 MusicSection(nowPlaying: nowPlaying)
                     .frame(width: available * 3 / 5)
@@ -46,8 +46,9 @@ struct HomeView: View {
                 MetricsSection(metrics: metrics)
                     .frame(width: available * 2 / 5)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 8)
+            .padding(.horizontal, Layout.horizontalPadding)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
@@ -61,7 +62,7 @@ private struct MusicSection: View {
     var body: some View {
         GeometryReader { geo in
             HStack(alignment: .top, spacing: 10) {
-                AlbumArtView(image: nowPlaying.artwork, cornerRadius: 8)
+                AlbumArtView(image: nowPlaying.artwork, cornerRadius: Layout.bottomCornerRadius)
                     .frame(width: geo.size.height, height: geo.size.height)
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -135,9 +136,9 @@ private struct MusicSection: View {
     private func mediaButton(_ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 22, height: 20)
+                .frame(width: 32, height: 28)
         }
         .buttonStyle(NotchPressStyle())
     }

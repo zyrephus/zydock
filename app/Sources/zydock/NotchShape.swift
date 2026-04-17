@@ -4,8 +4,8 @@ import SwiftUI
 /// top corners that flare outward (mimicking the hardware notch), and convex
 /// rounded corners at the bottom.
 struct NotchShape: Shape {
-    var topCornerRadius: CGFloat = 10
-    var bottomCornerRadius: CGFloat = 12
+    var topCornerRadius: CGFloat = Layout.shapeInset
+    var bottomCornerRadius: CGFloat = Layout.bottomCornerRadius
 
     func path(in rect: CGRect) -> Path {
         var p = Path()

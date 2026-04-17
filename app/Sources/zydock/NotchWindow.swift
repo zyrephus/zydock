@@ -19,6 +19,21 @@ final class NotchWindow {
     private var pinned = false
     private let state = NotchState()
 
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
+    private var pendingCollapse: DispatchWorkItem?
+    /// Prevents sub-pixel wobble near the edge from toggling state.
+    private let collapseMargin: CGFloat = 4
+    private let collapseDelay: TimeInterval = 0.12
+
+    // Cached hit zones — recomputed only when the screen/notch geometry changes
+    // (i.e. in show()). Read by every mouse-move event, so worth caching.
+    private var collapsedZone: NSRect = .zero
+    private var expandedHoverZone: NSRect = .zero
+    /// Lowest y the cursor can have while still being inside either zone.
+    /// Used as a single-compare early-out to reject events far from the top.
+    private var zoneMinY: CGFloat = 0
+
     func show() {
         guard let screen = Self.notchedScreen() else { return }
         screenFrame = screen.frame
@@ -31,10 +46,7 @@ final class NotchWindow {
             notchHeight: notchH,
             notchWidth: notchW,
             earWidth: earExtension,
-            state: state,
-            onHoverChange: { [weak self] entered in
-                entered ? self?.expand() : self?.collapse()
-            }
+            state: state
         )
         let host = NSHostingView(rootView: view)
         host.frame = NSRect(origin: .zero, size: frame.size)
@@ -56,6 +68,72 @@ final class NotchWindow {
 
         panel.orderFrontRegardless()
         self.panel = panel
+
+        collapsedZone = collapsedFrame()
+        expandedHoverZone = expandedFrame()
+            .insetBy(dx: -collapseMargin, dy: -collapseMargin)
+        zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
+
+        installMouseMonitors()
+    }
+
+    deinit {
+        if let m = globalMonitor { NSEvent.removeMonitor(m) }
+        if let m = localMonitor { NSEvent.removeMonitor(m) }
+    }
+
+    private func installMouseMonitors() {
+        guard globalMonitor == nil else { return }
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: .mouseMoved
+        ) { [weak self] _ in self?.handleMouseMoved() }
+        localMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: .mouseMoved
+        ) { [weak self] event in
+            self?.handleMouseMoved()
+            return event
+        }
+    }
+
+    private func handleMouseMoved() {
+        let loc = NSEvent.mouseLocation
+
+        // Coarse band reject: most mouse events happen far from the notch.
+        if loc.y < zoneMinY {
+            if isExpanded { scheduleCollapse() }
+            return
+        }
+
+        if isExpanded {
+            if expandedHoverZone.contains(loc) {
+                cancelPendingCollapse()
+            } else {
+                scheduleCollapse()
+            }
+        } else if collapsedZone.contains(loc) {
+            expand()
+        }
+    }
+
+    private func scheduleCollapse() {
+        guard pendingCollapse == nil else { return }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingCollapse = nil
+            guard self.isExpanded else { return }
+            if !self.expandedHoverZone.contains(NSEvent.mouseLocation) {
+                self.collapse()
+            }
+        }
+        pendingCollapse = item
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + collapseDelay, execute: item
+        )
+    }
+
+    private func cancelPendingCollapse() {
+        pendingCollapse?.cancel()
+        pendingCollapse = nil
     }
 
     private func collapsedFrame() -> NSRect {
