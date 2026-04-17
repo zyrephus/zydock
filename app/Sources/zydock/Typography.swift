@@ -9,8 +9,10 @@ enum Typography {
 enum Layout {
     /// Shape's vertical sides are inset this far from the window edge (= NotchShape.topCornerRadius).
     static let shapeInset: CGFloat = 14
-    /// Convex rounding on the bottom corners.
+    /// Convex rounding on the bottom corners (collapsed).
     static let bottomCornerRadius: CGFloat = 12
+    /// Convex rounding on the bottom corners (expanded).
+    static let expandedBottomCornerRadius: CGFloat = 24
     /// Desired visual padding between the shape edge and content.
     static let contentPadding: CGFloat = 20
     /// Window-relative horizontal padding = shapeInset + contentPadding.
