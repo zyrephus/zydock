@@ -103,20 +103,32 @@ struct AnimatedDot: View {
     @State private var isPulsing = false
 
     var body: some View {
-        Circle()
-            .fill(color)
-            .frame(width: 8, height: 8)
-            .opacity(isPulsing ? 0.2 : 1.0)
-            .scaleEffect(isPulsing ? 0.65 : 1.0)
-            .onAppear { startPulse() }
-            .onChange(of: state) { _ in restartPulse() }
+        if let pattern = loaderPattern {
+            PixelLoader(pattern: pattern)
+                .frame(width: 12, height: 12)
+        } else {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+                .opacity(isPulsing ? 0.2 : 1.0)
+                .scaleEffect(isPulsing ? 0.65 : 1.0)
+                .onAppear { startPulse() }
+                .onChange(of: state) { _ in restartPulse() }
+        }
+    }
+
+    private var loaderPattern: LoaderPattern? {
+        switch state {
+        case .idle:              return LoaderKind.idleGreen.pattern
+        case .thinking:          return LoaderKind.frame.pattern
+        case .toolActive:        return LoaderKind.frameAmber.pattern
+        case .waitingPermission: return LoaderKind.waveTLBR.pattern
+        default:                 return nil
+        }
     }
 
     private var shouldPulse: Bool {
-        switch state {
-        case .thinking, .toolActive, .waitingPermission: return true
-        default: return false
-        }
+        false
     }
 
     private var pulseSpeed: Double {

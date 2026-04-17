@@ -24,6 +24,7 @@
 		91A195909105B1A46F47FB9A /* AlbumArtView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB2EED2D222539904A15A75 /* AlbumArtView.swift */; };
 		94E9592D6938E63A33461FB9 /* zydockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED28B2956EA7CB9A1CCA68B /* zydockApp.swift */; };
 		9B7943065C4BBB8155601D27 /* TrayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACF2964471E6CD392EC2128 /* TrayManager.swift */; };
+		C6924164C7DA147AFED2625C /* LoadersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF649615EE24DCDC67D2F14 /* LoadersView.swift */; };
 		C9142527EC31A325AC7EA201 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B446F574050478CC1947CD9B /* NowPlayingManager.swift */; };
 		CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5583035ACF599FC80ED516 /* HotkeyManager.swift */; };
 		E9D9BFAD20AC68C10767B45F /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01EE2DB5AA97EFFEC3A61148 /* NotchTabBar.swift */; };
@@ -34,6 +35,7 @@
 /* Begin PBXFileReference section */
 		001D89A30EDE736AFD72486E /* zydock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = zydock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01EE2DB5AA97EFFEC3A61148 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
+		0CF649615EE24DCDC67D2F14 /* LoadersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadersView.swift; sourceTree = "<group>"; };
 		1276140B25A5B19042DD7B9D /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
 		1520AC2FD9550C03202A9FBB /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		1E527383BCE478B201140E2C /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				FABF96E2AB773DF55947D2BE /* DaemonManager.swift */,
 				7A5583035ACF599FC80ED516 /* HotkeyManager.swift */,
 				229BA93BE95779462BE279AD /* Info.plist */,
+				0CF649615EE24DCDC67D2F14 /* LoadersView.swift */,
 				C6288FFA925DB35A479D3513 /* MetricsPoller.swift */,
 				F6F5B034D21794DE38B05D59 /* MusicWaveView.swift */,
 				2EF5B51BB57A1AA1AB149485 /* NotchSettingsButton.swift */,
@@ -187,6 +190,7 @@
 				20B3865AAF397684FC312505 /* ClaudeCodeView.swift in Sources */,
 				07C3EACE9ED0B9F735F3BA27 /* DaemonManager.swift in Sources */,
 				CF1BA57708882F1822121E69 /* HotkeyManager.swift in Sources */,
+				C6924164C7DA147AFED2625C /* LoadersView.swift in Sources */,
 				12BDC3447B534A74FF57A249 /* MetricsPoller.swift in Sources */,
 				0E75B596698C48AC835D02F9 /* MusicWaveView.swift in Sources */,
 				8931810EEFC5528F6663F6CF /* NotchSettingsButton.swift in Sources */,
