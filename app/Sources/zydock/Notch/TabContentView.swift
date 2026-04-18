@@ -62,8 +62,12 @@ private struct MusicSection: View {
     var body: some View {
         GeometryReader { geo in
             HStack(alignment: .top, spacing: 10) {
-                AlbumArtView(image: nowPlaying.artwork, cornerRadius: Layout.bottomCornerRadius)
-                    .frame(width: geo.size.height, height: geo.size.height)
+                Button(action: { nowPlaying.openActiveApp() }) {
+                    AlbumArtView(image: nowPlaying.artwork, cornerRadius: Layout.bottomCornerRadius)
+                        .frame(width: geo.size.height, height: geo.size.height)
+                }
+                .buttonStyle(NotchPressStyle())
+                .disabled(!nowPlaying.hasMedia)
 
                 VStack(alignment: .leading, spacing: 4) {
                     titleBlock
