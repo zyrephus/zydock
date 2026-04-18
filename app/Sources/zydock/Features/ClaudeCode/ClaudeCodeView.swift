@@ -98,14 +98,38 @@ struct ClaudeCodeView: View {
     }
 }
 
+extension DockState {
+    var loaderPattern: LoaderPattern? {
+        switch self {
+        case .idle:              return LoaderKind.idleGreen.pattern
+        case .thinking:          return LoaderKind.frame.pattern
+        case .toolActive:        return LoaderKind.frameAmber.pattern
+        case .waitingPermission: return LoaderKind.waveTLBR.pattern
+        default:                 return nil
+        }
+    }
+}
+
+struct SessionLoaderView: View {
+    let state: DockState
+
+    var body: some View {
+        if let pattern = state.loaderPattern {
+            PixelLoader(pattern: pattern)
+        } else {
+            Color.clear
+        }
+    }
+}
+
 struct AnimatedDot: View {
     let state: DockState
     @State private var isPulsing = false
 
     var body: some View {
-        if let pattern = loaderPattern {
+        if let pattern = state.loaderPattern {
             PixelLoader(pattern: pattern)
-                .frame(width: 12, height: 12)
+                .frame(width: 14, height: 14)
         } else {
             Circle()
                 .fill(color)
@@ -114,16 +138,6 @@ struct AnimatedDot: View {
                 .scaleEffect(isPulsing ? 0.65 : 1.0)
                 .onAppear { startPulse() }
                 .onChange(of: state) { _ in restartPulse() }
-        }
-    }
-
-    private var loaderPattern: LoaderPattern? {
-        switch state {
-        case .idle:              return LoaderKind.idleGreen.pattern
-        case .thinking:          return LoaderKind.frame.pattern
-        case .toolActive:        return LoaderKind.frameAmber.pattern
-        case .waitingPermission: return LoaderKind.waveTLBR.pattern
-        default:                 return nil
         }
     }
 

@@ -22,7 +22,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wilson.zydock
         PRODUCT_NAME: zydock
-        INFOPLIST_FILE: Sources/zydock/Info.plist
+        INFOPLIST_FILE: Sources/zydock/App/Info.plist
     postBuildScripts:
       - script: |
           cd "$SRCROOT/../daemon"

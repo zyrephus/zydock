@@ -21,8 +21,10 @@ struct NotchView: View {
     private var artLeadingPad: CGFloat {
         shapeSideInset + max(0, (earInteriorWidth - artSize) / 2) + Layout.earInwardNudge
     }
+    private let rightEarSize: CGFloat = 14
+
     private var waveTrailingPad: CGFloat {
-        shapeSideInset + max(0, (earInteriorWidth - waveWidth) / 2) + Layout.earInwardNudge
+        shapeSideInset + max(0, (earInteriorWidth - rightEarSize) / 2) + Layout.earInwardNudge
     }
 
     var body: some View {
@@ -67,11 +69,24 @@ struct NotchView: View {
 
             Spacer(minLength: 0)
 
-            MusicWaveView(isPlaying: nowPlaying.isPlaying)
-                .frame(width: waveWidth, height: waveHeight)
+            rightEar
+                .frame(width: rightEarSize, height: rightEarSize)
                 .padding(.trailing, waveTrailingPad)
         }
         .frame(height: notchHeight)
+    }
+
+    @ViewBuilder
+    private var rightEar: some View {
+        if showClaudeLoader {
+            SessionLoaderView(state: sessionState.state)
+        } else {
+            MusicWaveView(isPlaying: nowPlaying.isPlaying)
+        }
+    }
+
+    private var showClaudeLoader: Bool {
+        !sessionState.activeSessions.isEmpty && sessionState.state != .disconnected
     }
 
     private var expandedTopBar: some View {
@@ -84,6 +99,10 @@ struct NotchView: View {
 
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
+                ForEach(sessionState.activeSessions.prefix(2)) { session in
+                    SessionLoaderView(state: session.state)
+                        .frame(width: rightEarSize, height: rightEarSize)
+                }
                 MusicWaveView(isPlaying: nowPlaying.isPlaying)
                     .frame(width: waveWidth, height: waveHeight)
                 NotchSettingsButton(size: artSize)
