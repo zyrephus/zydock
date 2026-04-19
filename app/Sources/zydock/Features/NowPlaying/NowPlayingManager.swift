@@ -91,6 +91,13 @@ class NowPlayingManager: ObservableObject {
         progressTimer = nil
     }
 
+    /// Bring the active music app (Music.app or Spotify) to the foreground.
+    func openActiveApp() {
+        guard let source = activeSource,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: source.bundleID) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+
     /// Commit a scrub: seek the active player and resume progress ticking.
     func seek(fraction: Double) {
         guard let source = activeSource, duration > 0 else { return }

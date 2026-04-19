@@ -11,8 +11,14 @@ struct ClaudeCodeView: View {
                 statusRow(color: .gray, text: "daemon offline")
                     .transition(.opacity)
             } else if sessionState.activeSessions.isEmpty {
-                statusRow(color: .green, text: "no active sessions")
-                    .transition(.opacity)
+                HStack(spacing: 10) {
+                    PixelLoader(pattern: LoaderKind.idleGray.pattern)
+                        .frame(width: 14, height: 14)
+                    Text("no active sessions")
+                        .font(.system(size: Typography.primary, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .transition(.opacity)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 6) {
