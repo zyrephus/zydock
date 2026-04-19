@@ -77,6 +77,7 @@ struct LoaderPattern {
 private let tintBlue = Color(red: 0.58, green: 0.76, blue: 1.0)
 private let tintAmber = Color(red: 1.0, green: 0.76, blue: 0.52)
 private let tintPink = Color(red: 1.0, green: 0.58, blue: 0.66)
+private let tintGray = Color(red: 0.55, green: 0.55, blue: 0.58)
 
 // MARK: - Pattern helpers
 
@@ -131,6 +132,7 @@ enum LoaderKind: String, CaseIterable, Identifiable {
     case waveTLBR = "wave-tl-br"
     case idleGreen = "idle"
     case frameAmber = "frame-amber"
+    case idleGray = "idle-gray"
 
     var id: String { rawValue }
 
@@ -291,6 +293,21 @@ enum LoaderKind: String, CaseIterable, Identifiable {
             var cells = sweep(border)
             cells.append(LoaderCell(row: 1, col: 1, phase: 0.5))
             return .init(cells: cells, tint: tintAmber, period: 2.0, sharpness: 3.0)
+
+        case .idleGray:
+            // Corners lead, cross follows, center trails — ripples inward so cells are visually distinct.
+            let phases: [[Double]] = [
+                [0.00, 0.20, 0.00],
+                [0.20, 0.40, 0.20],
+                [0.00, 0.20, 0.00],
+            ]
+            var cells: [LoaderCell] = []
+            for r in 0..<3 {
+                for c in 0..<3 {
+                    cells.append(LoaderCell(row: r, col: c, phase: phases[r][c]))
+                }
+            }
+            return .init(cells: cells, tint: tintGray, period: 3.5, sharpness: 1.2)
         }
     }
 }
