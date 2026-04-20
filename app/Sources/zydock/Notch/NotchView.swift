@@ -8,8 +8,8 @@ struct NotchView: View {
 
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
-    @StateObject private var sessionState = SessionState()
-    @State private var wsClient: WebSocketClient?
+    @StateObject private var ccController = ClaudeCodeController()
+    @ObservedObject private var registry: ModuleRegistry = .shared
 
     private let shapeSideInset: CGFloat = Layout.shapeInset
 
@@ -27,6 +27,8 @@ struct NotchView: View {
         shapeSideInset + max(0, (earInteriorWidth - rightEarSize) / 2) + Layout.earInwardNudge
     }
 
+    private var ccEnabled: Bool { registry.isEnabled("claudeCode") }
+
     var body: some View {
         NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
             .fill(Color.black)
@@ -42,10 +44,10 @@ struct NotchView: View {
             }
             .overlay(alignment: .top) {
                 TabContentView(
-                    selectedTab: state.selectedTab,
+                    selectedTabID: resolvedSelectedTabID,
                     nowPlaying: nowPlaying,
                     metrics: metrics,
-                    sessionState: sessionState
+                    sessionState: ccController.sessionState
                 )
                     .padding(.top, notchHeight)
                     .opacity(state.isExpanded ? 1 : 0)
@@ -53,12 +55,27 @@ struct NotchView: View {
             }
             .onAppear {
                 metrics.start()
-                if wsClient == nil {
-                    let client = WebSocketClient(state: sessionState)
-                    wsClient = client
-                    client.connect()
+                syncClaudeCodeRuntime()
+            }
+            .onChange(of: registry.enabledIDs) { _ in
+                syncClaudeCodeRuntime()
+                if !ccEnabled && state.selectedTabID == "claudeCode" {
+                    state.selectedTabID = "home"
                 }
             }
+    }
+
+    private var resolvedSelectedTabID: String {
+        if state.selectedTabID == "claudeCode" && !ccEnabled { return "home" }
+        return state.selectedTabID
+    }
+
+    private func syncClaudeCodeRuntime() {
+        if ccEnabled {
+            ccController.activate()
+        } else {
+            ccController.deactivate()
+        }
     }
 
     private var earsLayer: some View {
@@ -78,7 +95,7 @@ struct NotchView: View {
 
     @ViewBuilder
     private var rightEar: some View {
-        if showClaudeLoader {
+        if showClaudeLoader, let sessionState = ccController.sessionState {
             SessionLoaderView(state: sessionState.state)
         } else {
             MusicWaveView(isPlaying: nowPlaying.isPlaying)
@@ -86,12 +103,13 @@ struct NotchView: View {
     }
 
     private var showClaudeLoader: Bool {
-        !sessionState.activeSessions.isEmpty && sessionState.state != .disconnected
+        guard ccEnabled, let s = ccController.sessionState else { return false }
+        return !s.activeSessions.isEmpty && s.state != .disconnected
     }
 
     private var expandedTopBar: some View {
         HStack(spacing: 0) {
-            NotchTabBar(selected: $state.selectedTab, itemSize: artSize)
+            NotchTabBar(selected: $state.selectedTabID, itemSize: artSize)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, Layout.horizontalPadding)
 
@@ -99,9 +117,11 @@ struct NotchView: View {
 
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
-                ForEach(sessionState.activeSessions.prefix(2)) { session in
-                    SessionLoaderView(state: session.state)
-                        .frame(width: rightEarSize, height: rightEarSize)
+                if ccEnabled, let sessionState = ccController.sessionState {
+                    ForEach(sessionState.activeSessions.prefix(2)) { session in
+                        SessionLoaderView(state: session.state)
+                            .frame(width: rightEarSize, height: rightEarSize)
+                    }
                 }
                 MusicWaveView(isPlaying: nowPlaying.isPlaying)
                     .frame(width: waveWidth, height: waveHeight)

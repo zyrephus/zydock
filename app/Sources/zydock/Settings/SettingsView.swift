@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var currentModifiers: UInt32 = HotkeyManager.defaultModifiers
     @State private var conflicts: [String] = []
     @State private var shortcutDisplay: String = ""
+    @ObservedObject private var registry: ModuleRegistry = .shared
 
     var body: some View {
         Form {
@@ -47,6 +48,15 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
 
+            Section("Modules") {
+                ForEach(registry.all, id: \.id) { module in
+                    Toggle(module.title, isOn: binding(for: module))
+                }
+                Text("Disable modules you don't use. Their tabs and background work are fully stopped.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section {
                 HStack {
                     Spacer()
@@ -57,8 +67,15 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 280)
+        .frame(width: 420, height: 360)
         .onAppear { loadCurrentShortcut() }
+    }
+
+    private func binding(for module: Module) -> Binding<Bool> {
+        Binding(
+            get: { registry.isEnabled(module.id) },
+            set: { registry.setEnabled(module.id, $0) }
+        )
     }
 
     private func loadCurrentShortcut() {

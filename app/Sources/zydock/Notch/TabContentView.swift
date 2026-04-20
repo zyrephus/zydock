@@ -1,25 +1,31 @@
 import SwiftUI
 
 struct TabContentView: View {
-    var selectedTab: Int
+    var selectedTabID: String
     @ObservedObject var nowPlaying: NowPlayingManager
     @ObservedObject var metrics: MetricsPoller
-    @ObservedObject var sessionState: SessionState
+    var sessionState: SessionState?
 
     var body: some View {
         ZStack {
-            switch selectedTab {
-            case 0:
+            switch selectedTabID {
+            case "home":
                 HomeView(nowPlaying: nowPlaying, metrics: metrics)
                     .transition(transition)
-            case 1:
-                ClaudeCodeView(sessionState: sessionState)
-                    .transition(transition)
+            case "claudeCode":
+                if let sessionState {
+                    ClaudeCodeView(sessionState: sessionState)
+                        .transition(transition)
+                } else {
+                    HomeView(nowPlaying: nowPlaying, metrics: metrics)
+                        .transition(transition)
+                }
             default:
-                EmptyView()
+                HomeView(nowPlaying: nowPlaying, metrics: metrics)
+                    .transition(transition)
             }
         }
-        .animation(.spring(response: 0.34, dampingFraction: 0.82), value: selectedTab)
+        .animation(.spring(response: 0.34, dampingFraction: 0.82), value: selectedTabID)
     }
 
     private var transition: AnyTransition {
