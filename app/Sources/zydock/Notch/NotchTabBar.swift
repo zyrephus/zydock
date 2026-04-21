@@ -1,26 +1,30 @@
 import SwiftUI
 
 struct NotchTabBar: View {
-    @Binding var selected: Int
+    @Binding var selected: String
     var itemSize: CGFloat
+    @ObservedObject var registry: ModuleRegistry = .shared
     @Namespace private var ns
 
-    private let icons: [String] = ["house.fill", "terminal.fill"]
     private let spacing: CGFloat = 4
+
+    private var tabs: [(id: String, icon: String)] {
+        [("home", "house.fill")] + registry.enabled.map { ($0.id, $0.icon) }
+    }
 
     var body: some View {
         HStack(spacing: spacing) {
-            ForEach(icons.indices, id: \.self) { i in
-                tab(i)
+            ForEach(tabs, id: \.id) { t in
+                tab(id: t.id, icon: t.icon)
             }
         }
     }
 
-    private func tab(_ i: Int) -> some View {
-        let isSelected = selected == i
+    private func tab(id: String, icon: String) -> some View {
+        let isSelected = selected == id
         return Button {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                selected = i
+                selected = id
             }
         } label: {
             ZStack {
@@ -30,7 +34,7 @@ struct NotchTabBar: View {
                         .padding(.vertical, 5)
                         .matchedGeometryEffect(id: "tabPill", in: ns)
                 }
-                Image(systemName: icons[i])
+                Image(systemName: icon)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(
                         isSelected

@@ -19,6 +19,14 @@ class WebSocketClient {
         listen()
     }
 
+    func disconnect() {
+        isCancelled = true
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
+    }
+
+    private var isCancelled = false
+
     private func listen() {
         task?.receive { [weak self] result in
             guard let self else { return }
@@ -35,6 +43,7 @@ class WebSocketClient {
                 self.listen()
 
             case .failure:
+                if self.isCancelled { return }
                 // WebSocket dropped — daemon is unreachable
                 self.state.markDaemonDisconnected()
                 self.reconnect()
@@ -55,7 +64,8 @@ class WebSocketClient {
         retryDelay = min(retryDelay * 2, 30.0) // exponential backoff, max 30s
 
         DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.connect()
+            guard let self, !self.isCancelled else { return }
+            self.connect()
         }
     }
 }
