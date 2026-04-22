@@ -7,7 +7,7 @@ struct PixelLoader: View {
     var grid: Int = 3
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 10.0)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let phase = (t.truncatingRemainder(dividingBy: pattern.period)) / pattern.period
 
