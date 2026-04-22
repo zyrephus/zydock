@@ -80,6 +80,9 @@ private struct MusicSection: View {
                 Button(action: { nowPlaying.openActiveApp() }) {
                     AlbumArtView(image: nowPlaying.artwork, cornerRadius: Layout.bottomCornerRadius)
                         .frame(width: geo.size.height, height: geo.size.height)
+                        .background(alignment: .center) {
+                            backlight(size: geo.size.height)
+                        }
                 }
                 .buttonStyle(NotchPressStyle())
                 .disabled(!nowPlaying.hasMedia)
@@ -150,6 +153,19 @@ private struct MusicSection: View {
         [nowPlaying.artist, nowPlaying.album]
             .filter { !$0.isEmpty }
             .joined(separator: " — ")
+    }
+
+    @ViewBuilder
+    private func backlight(size: CGFloat) -> some View {
+        if let image = nowPlaying.artwork {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size * 1.2, height: size * 1.2)
+                .blur(radius: 28)
+                .opacity(0.4)
+                .allowsHitTesting(false)
+        }
     }
 
     private func mediaButton(_ icon: String, action: @escaping () -> Void) -> some View {
