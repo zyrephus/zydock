@@ -9,6 +9,7 @@ struct NotchView: View {
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
     @StateObject private var ccController = ClaudeCodeController()
+    @StateObject private var trayController = TrayController()
     @ObservedObject private var registry: ModuleRegistry = .shared
 
     private let shapeSideInset: CGFloat = Layout.shapeInset
@@ -28,6 +29,7 @@ struct NotchView: View {
     }
 
     private var ccEnabled: Bool { registry.isEnabled("claudeCode") }
+    private var trayEnabled: Bool { registry.isEnabled("tray") }
 
     var body: some View {
         NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
@@ -47,7 +49,8 @@ struct NotchView: View {
                     selectedTabID: resolvedSelectedTabID,
                     nowPlaying: nowPlaying,
                     metrics: metrics,
-                    sessionState: ccController.sessionState
+                    sessionState: ccController.sessionState,
+                    trayManager: trayController.trayManager
                 )
                     .padding(.top, notchHeight)
                     .opacity(state.isExpanded ? 1 : 0)
@@ -55,11 +58,14 @@ struct NotchView: View {
             }
             .onAppear {
                 metrics.start()
-                syncClaudeCodeRuntime()
+                syncModuleRuntimes()
             }
             .onChange(of: registry.enabledIDs) { _ in
-                syncClaudeCodeRuntime()
+                syncModuleRuntimes()
                 if !ccEnabled && state.selectedTabID == "claudeCode" {
+                    state.selectedTabID = "home"
+                }
+                if !trayEnabled && state.selectedTabID == "tray" {
                     state.selectedTabID = "home"
                 }
             }
@@ -67,15 +73,13 @@ struct NotchView: View {
 
     private var resolvedSelectedTabID: String {
         if state.selectedTabID == "claudeCode" && !ccEnabled { return "home" }
+        if state.selectedTabID == "tray" && !trayEnabled { return "home" }
         return state.selectedTabID
     }
 
-    private func syncClaudeCodeRuntime() {
-        if ccEnabled {
-            ccController.activate()
-        } else {
-            ccController.deactivate()
-        }
+    private func syncModuleRuntimes() {
+        if ccEnabled { ccController.activate() } else { ccController.deactivate() }
+        if trayEnabled { trayController.activate() } else { trayController.deactivate() }
     }
 
     private var earsLayer: some View {

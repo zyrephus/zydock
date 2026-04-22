@@ -12,16 +12,24 @@
 		1AB241F23EC6A54CFED99457 /* MusicWaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCA26E0BF1E656B00619B33 /* MusicWaveView.swift */; };
 		1DC48DD850F243E74949F707 /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03110D4F809BAEFBB9624C8 /* NotchTabBar.swift */; };
 		20E0F293D3657B3884CBE914 /* NotchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C5EC09A79A30F57094FB74 /* NotchState.swift */; };
+		2C0EAFBA7B217D1E160C2DC6 /* TrayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD708A623198F493B3499C9 /* TrayController.swift */; };
 		2D144527F64C1BEB547206E1 /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDDD8F019336230817E6296 /* SessionState.swift */; };
 		33820CD4836DC663E2AF9187 /* ShortcutRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 252955F5D7362B8D2DDB3E5B /* ShortcutRecorderView.swift */; };
+		3787BCC32FF8B54CAB58B24A /* ClaudeCodeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD0F304995502DE96DBA794 /* ClaudeCodeController.swift */; };
+		40F724D329E839EF068A5CAC /* TrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A175378F0511FD2AE795A6 /* TrayView.swift */; };
 		45E242EF3A3D587800D62484 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7565C587FB450839EB95070E /* SettingsView.swift */; };
+		52981714CB80A2F3EC271F9B /* Module.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453858F2A2C15433D7CD478B /* Module.swift */; };
 		574EE0751FB9FC14597151D6 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE863084F10FB558DFA8EAFE /* WebSocketClient.swift */; };
+		59C0E6358FC7B2EF9384CB19 /* TrayModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7EA3DCFACA653C483EE405 /* TrayModule.swift */; };
+		5A4C9B2BFC31713CEC9394AC /* ClaudeCodeModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91201566BCB97BF5AB99FCD /* ClaudeCodeModule.swift */; };
 		5FC993A256CF8227B8B003B5 /* AlbumArtView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4853524CD996FC37307164F9 /* AlbumArtView.swift */; };
 		79E4F6D182ED707EED04167F /* NotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A422A1E006C1343FFA46D20C /* NotchView.swift */; };
 		7FDBB0B0814D76F268F9BF93 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E901B2CBF504D9FCB25E35 /* SettingsWindowController.swift */; };
 		8C8EBF3A5E6867201EAA5921 /* DaemonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4807564E9A9A2EED0C50FD9F /* DaemonManager.swift */; };
+		90E82737FA86A5FE6C7AAFD4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44DE2943B39D363E007E1B38 /* Assets.xcassets */; };
 		A972657A6FB1FC724A16F563 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D5E5273F7397E40BE1820A /* NowPlayingManager.swift */; };
 		AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B19B9D105FDA667399BD91B /* TabContentView.swift */; };
+		B64E466FDFACBDA551E44AD8 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9285D50F59B0C02072B235BD /* AppIcon.icns */; };
 		E13285AA78089DF716DB34FE /* TrayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F016A014A0F39E0DA74374 /* TrayManager.swift */; };
 		E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */; };
 		E8ED558EAFD45D86F08E7EA6 /* LoadersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D33803455E0CC06D52C2B2 /* LoadersView.swift */; };
@@ -30,13 +38,17 @@
 		ED3A9736E342AD6B50C53FC4 /* NotchSettingsButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFEE1FE31D3B21CE0796DEFA /* NotchSettingsButton.swift */; };
 		F54B2607C8D2503FE5DBA7B8 /* MetricsPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FB248C59177AA59CA00BF1A /* MetricsPoller.swift */; };
 		F6E341DEB8BC0A2574588D94 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA74C03DFBEA19F4CF55E381 /* NotchWindow.swift */; };
+		FDB55169843AAE1E1EBDA571 /* ModuleRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA436057CD97D43AFE86C3E /* ModuleRegistry.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		001D89A30EDE736AFD72486E /* zydock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = zydock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		00227FCD57E48E945B9DAB05 /* zydockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zydockApp.swift; sourceTree = "<group>"; };
+		01A175378F0511FD2AE795A6 /* TrayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayView.swift; sourceTree = "<group>"; };
 		252955F5D7362B8D2DDB3E5B /* ShortcutRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorderView.swift; sourceTree = "<group>"; };
 		37F016A014A0F39E0DA74374 /* TrayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayManager.swift; sourceTree = "<group>"; };
+		44DE2943B39D363E007E1B38 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		453858F2A2C15433D7CD478B /* Module.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Module.swift; sourceTree = "<group>"; };
 		4807564E9A9A2EED0C50FD9F /* DaemonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaemonManager.swift; sourceTree = "<group>"; };
 		4853524CD996FC37307164F9 /* AlbumArtView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumArtView.swift; sourceTree = "<group>"; };
 		4B19B9D105FDA667399BD91B /* TabContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabContentView.swift; sourceTree = "<group>"; };
@@ -45,28 +57,46 @@
 		5C229090C1EA2D7B39B63001 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		61C5EC09A79A30F57094FB74 /* NotchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchState.swift; sourceTree = "<group>"; };
 		667DC680149DA98BAC15CB82 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		6A7EA3DCFACA653C483EE405 /* TrayModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayModule.swift; sourceTree = "<group>"; };
 		71D5E5273F7397E40BE1820A /* NowPlayingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingManager.swift; sourceTree = "<group>"; };
 		7565C587FB450839EB95070E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7FD708A623198F493B3499C9 /* TrayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayController.swift; sourceTree = "<group>"; };
 		90E901B2CBF504D9FCB25E35 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		9285D50F59B0C02072B235BD /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		A422A1E006C1343FFA46D20C /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
 		B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeView.swift; sourceTree = "<group>"; };
 		BA74C03DFBEA19F4CF55E381 /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
 		BE863084F10FB558DFA8EAFE /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		BFDDD8F019336230817E6296 /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
 		C4D33803455E0CC06D52C2B2 /* LoadersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadersView.swift; sourceTree = "<group>"; };
+		CEA436057CD97D43AFE86C3E /* ModuleRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleRegistry.swift; sourceTree = "<group>"; };
+		D91201566BCB97BF5AB99FCD /* ClaudeCodeModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeModule.swift; sourceTree = "<group>"; };
 		DFEE1FE31D3B21CE0796DEFA /* NotchSettingsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsButton.swift; sourceTree = "<group>"; };
 		E03110D4F809BAEFBB9624C8 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
 		F71A135614030CEF84501A56 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F87AFA2819772B059B3B46E2 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
+		FBD0F304995502DE96DBA794 /* ClaudeCodeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		1E74AC7076521F9691616BDA /* Tray */ = {
+			isa = PBXGroup;
+			children = (
+				7FD708A623198F493B3499C9 /* TrayController.swift */,
+				6A7EA3DCFACA653C483EE405 /* TrayModule.swift */,
+				01A175378F0511FD2AE795A6 /* TrayView.swift */,
+			);
+			path = Tray;
+			sourceTree = "<group>";
+		};
 		2BFE1C7962ACB1E6D0976B80 /* zydock */ = {
 			isa = PBXGroup;
 			children = (
+				44DE2943B39D363E007E1B38 /* Assets.xcassets */,
 				3AE774CCB64B9C6C01C297C1 /* App */,
 				3094E3F0A706A72F87A3AC48 /* Daemon */,
 				F1D6B7AE6F1D2C9F6E3185AF /* Features */,
+				AAA79B3BA34E6E5602B1F97A /* Modules */,
 				EE467ABF4A4825AB7C3AF860 /* Notch */,
 				6A32A7F5ED9816F3996D8340 /* Settings */,
 				421FB11115F9990C96EA96E6 /* Shared */,
@@ -89,6 +119,7 @@
 		3AE774CCB64B9C6C01C297C1 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				9285D50F59B0C02072B235BD /* AppIcon.icns */,
 				F71A135614030CEF84501A56 /* Info.plist */,
 				00227FCD57E48E945B9DAB05 /* zydockApp.swift */,
 			);
@@ -123,6 +154,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AAA79B3BA34E6E5602B1F97A /* Modules */ = {
+			isa = PBXGroup;
+			children = (
+				453858F2A2C15433D7CD478B /* Module.swift */,
+				CEA436057CD97D43AFE86C3E /* ModuleRegistry.swift */,
+			);
+			path = Modules;
+			sourceTree = "<group>";
+		};
 		AF473C8ABE49C69C21B96EFE = {
 			isa = PBXGroup;
 			children = (
@@ -144,6 +184,8 @@
 		E6B8F0C4C6D6E1AD906CC474 /* ClaudeCode */ = {
 			isa = PBXGroup;
 			children = (
+				FBD0F304995502DE96DBA794 /* ClaudeCodeController.swift */,
+				D91201566BCB97BF5AB99FCD /* ClaudeCodeModule.swift */,
 				B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */,
 			);
 			path = ClaudeCode;
@@ -169,6 +211,7 @@
 			children = (
 				E6B8F0C4C6D6E1AD906CC474 /* ClaudeCode */,
 				B19DA44DAE51E6D18448FC57 /* NowPlaying */,
+				1E74AC7076521F9691616BDA /* Tray */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -181,6 +224,7 @@
 			buildConfigurationList = 0F5001F7823CF33C71B018D8 /* Build configuration list for PBXNativeTarget "zydock" */;
 			buildPhases = (
 				3ED97AC846F0DB05D351A1E1 /* Sources */,
+				FD5A9281983F3EA05E617135 /* Resources */,
 				C747C9CF983A28B543DA0882 /* Build Go Daemon */,
 			);
 			buildRules = (
@@ -224,6 +268,18 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		FD5A9281983F3EA05E617135 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B64E466FDFACBDA551E44AD8 /* AppIcon.icns in Resources */,
+				90E82737FA86A5FE6C7AAFD4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		C747C9CF983A28B543DA0882 /* Build Go Daemon */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -251,11 +307,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				5FC993A256CF8227B8B003B5 /* AlbumArtView.swift in Sources */,
+				3787BCC32FF8B54CAB58B24A /* ClaudeCodeController.swift in Sources */,
+				5A4C9B2BFC31713CEC9394AC /* ClaudeCodeModule.swift in Sources */,
 				E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */,
 				8C8EBF3A5E6867201EAA5921 /* DaemonManager.swift in Sources */,
 				EA958190D3FCBCB981A5DD4E /* HotkeyManager.swift in Sources */,
 				E8ED558EAFD45D86F08E7EA6 /* LoadersView.swift in Sources */,
 				F54B2607C8D2503FE5DBA7B8 /* MetricsPoller.swift in Sources */,
+				52981714CB80A2F3EC271F9B /* Module.swift in Sources */,
+				FDB55169843AAE1E1EBDA571 /* ModuleRegistry.swift in Sources */,
 				1AB241F23EC6A54CFED99457 /* MusicWaveView.swift in Sources */,
 				ED3A9736E342AD6B50C53FC4 /* NotchSettingsButton.swift in Sources */,
 				100BCEC05F9048E78066AE1B /* NotchShape.swift in Sources */,
@@ -269,7 +329,10 @@
 				7FDBB0B0814D76F268F9BF93 /* SettingsWindowController.swift in Sources */,
 				33820CD4836DC663E2AF9187 /* ShortcutRecorderView.swift in Sources */,
 				AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */,
+				2C0EAFBA7B217D1E160C2DC6 /* TrayController.swift in Sources */,
 				E13285AA78089DF716DB34FE /* TrayManager.swift in Sources */,
+				59C0E6358FC7B2EF9384CB19 /* TrayModule.swift in Sources */,
+				40F724D329E839EF068A5CAC /* TrayView.swift in Sources */,
 				08E380B3E0E9539EBDF2BADB /* Typography.swift in Sources */,
 				574EE0751FB9FC14597151D6 /* WebSocketClient.swift in Sources */,
 				E9A44D076BAE0020CFE3429F /* zydockApp.swift in Sources */,

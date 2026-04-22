@@ -5,6 +5,7 @@ struct TabContentView: View {
     @ObservedObject var nowPlaying: NowPlayingManager
     @ObservedObject var metrics: MetricsPoller
     var sessionState: SessionState?
+    var trayManager: TrayManager?
 
     var body: some View {
         ZStack {
@@ -15,6 +16,14 @@ struct TabContentView: View {
             case "claudeCode":
                 if let sessionState {
                     ClaudeCodeView(sessionState: sessionState)
+                        .transition(transition)
+                } else {
+                    HomeView(nowPlaying: nowPlaying, metrics: metrics)
+                        .transition(transition)
+                }
+            case "tray":
+                if let trayManager {
+                    TrayView(trayManager: trayManager)
                         .transition(transition)
                 } else {
                     HomeView(nowPlaying: nowPlaying, metrics: metrics)

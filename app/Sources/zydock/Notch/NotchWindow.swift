@@ -84,11 +84,16 @@ final class NotchWindow {
 
     private func installMouseMonitors() {
         guard globalMonitor == nil else { return }
+        // Include drag events so expansion works while the user is dragging —
+        // macOS sends *MouseDragged instead of mouseMoved while a button is held.
+        let mask: NSEvent.EventTypeMask = [
+            .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged
+        ]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: .mouseMoved
+            matching: mask
         ) { [weak self] _ in self?.handleMouseMoved() }
         localMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: .mouseMoved
+            matching: mask
         ) { [weak self] event in
             self?.handleMouseMoved()
             return event
@@ -111,6 +116,11 @@ final class NotchWindow {
                 scheduleCollapse()
             }
         } else if collapsedZone.contains(loc) {
+            // If the user is dragging (any mouse button held) into the notch,
+            // force the Tray tab so they have a drop target.
+            if NSEvent.pressedMouseButtons != 0 {
+                state.selectedTabID = "tray"
+            }
             expand()
         }
     }

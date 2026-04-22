@@ -14,6 +14,8 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
     <!-- No dock icon, no app switcher entry -->
     <key>LSUIElement</key>
     <true/>
@@ -23,5 +25,12 @@
     <!-- Lets zydock query Music.app / Spotify for Now Playing info via AppleScript -->
     <key>NSAppleEventsUsageDescription</key>
     <string>zydock reads Now Playing info (title, artist, playback position) from Music and Spotify.</string>
+    <!-- Required so zydock can watch the Desktop for new screenshots and surface them in the Tray tab. -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>zydock watches your screenshot folder so new screenshots automatically appear in the Tray.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>zydock accesses files you drop into the Tray. It only reads paths you explicitly drag in.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>zydock accesses files you drop into the Tray. It only reads paths you explicitly drag in.</string>
 </dict>
 </plist>
