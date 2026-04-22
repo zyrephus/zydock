@@ -1,7 +1,7 @@
 import AppKit
+import CoreServices
 import Foundation
 import SwiftUI
-import UniformTypeIdentifiers
 
 enum TrayItemKind {
     case text(String)
@@ -10,10 +10,10 @@ enum TrayItemKind {
     case screenshot(URL)
 }
 
-final class TrayItem: Identifiable, ObservableObject {
+final class TrayItem: Identifiable {
     let id = UUID()
     let timestamp: Date
-    @Published var kind: TrayItemKind
+    var kind: TrayItemKind
     let thumbnail: NSImage?
     let rawData: Data?
 
@@ -55,16 +55,27 @@ final class TrayManager: ObservableObject {
 
     private var clipboardTimer: Timer?
     private var lastChangeCount: Int = 0
-    private let maxItems = 50
+    private let maxTrayItems = 12
+    private let maxClipboardItems = 20
     private var fileMonitor: DispatchSourceFileSystemObject?
     private var monitorFD: Int32 = -1
 
     func start() {
         lastChangeCount = NSPasteboard.general.changeCount
+        clipboardTimer?.invalidate()
         clipboardTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkClipboard()
         }
-        startScreenshotMonitor()
+        pruneCacheDir()
+        // `defaults read` via fork+waitUntilExit blocks the caller — resolve
+        // the screenshot directory on a background queue, then hop back to
+        // main to install the DispatchSource.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let dir = Self.resolveScreenshotDirectory()
+            DispatchQueue.main.async {
+                self?.startScreenshotMonitor(in: dir)
+            }
+        }
     }
 
     func stop() {
@@ -82,16 +93,24 @@ final class TrayManager: ObservableObject {
 
     func copyToClipboard(_ item: TrayItem) {
         let pb = NSPasteboard.general
-        pb.clearContents()
 
         switch item.kind {
         case .text(let s):
+            pb.clearContents()
             pb.setString(s, forType: .string)
         case .image:
+            pb.clearContents()
             if let data = item.rawData, let image = NSImage(data: data) {
                 pb.writeObjects([image])
             }
         case .fileURL(let url), .screenshot(let url):
+            // File may have been moved/deleted since we captured it; don't
+            // paste a dead URL that will fail silently in Finder / Mail.
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                removeTrayItem(item)
+                return
+            }
+            pb.clearContents()
             pb.writeObjects([url as NSURL])
         }
 
@@ -115,19 +134,32 @@ final class TrayManager: ObservableObject {
             }
         }
 
-        // File URL (goes to tray)
-        if let urls = pb.readObjects(forClasses: [NSURL.self]) as? [URL], let url = urls.first {
-            addTrayItem(makeFileItem(url: url))
+        // Prefer raw image bytes over file URL: Preview / Safari / screenshot
+        // tools put BOTH on the pasteboard, but the URL is often a temp path
+        // that vanishes. Only take the image branch when the pasteboard
+        // explicitly declares image content — Finder copies of image *files*
+        // don't, so those still fall into the fileURL branch.
+        let explicitImageTypes: Set<NSPasteboard.PasteboardType> = [
+            .png, .tiff, NSPasteboard.PasteboardType("public.jpeg")
+        ]
+        let hasExplicitImage = pb.types?.contains(where: { explicitImageTypes.contains($0) }) ?? false
+
+        if hasExplicitImage, let image = NSImage(pasteboard: pb) {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let thumbnail = image.resized(maxDimension: 200)
+                let data = image.tiffRepresentation.flatMap {
+                    NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:])
+                }
+                DispatchQueue.main.async {
+                    self?.addTrayItem(TrayItem(timestamp: Date(), kind: .image, thumbnail: thumbnail, rawData: data))
+                }
+            }
             return
         }
 
-        // Image (goes to tray)
-        if let image = NSImage(pasteboard: pb) {
-            let thumbnail = image.resized(maxDimension: 200)
-            let data = image.tiffRepresentation.flatMap {
-                NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:])
-            }
-            addTrayItem(TrayItem(timestamp: Date(), kind: .image, thumbnail: thumbnail, rawData: data))
+        // File URL (goes to tray)
+        if let urls = pb.readObjects(forClasses: [NSURL.self]) as? [URL], let url = urls.first {
+            ingestFileURL(url)
             return
         }
 
@@ -152,9 +184,7 @@ final class TrayManager: ObservableObject {
                 accepted = true
                 _ = provider.loadObject(ofClass: URL.self) { [weak self] url, _ in
                     guard let self, let url else { return }
-                    DispatchQueue.main.async {
-                        self.addTrayItem(self.makeFileItem(url: url))
-                    }
+                    self.ingestFileURL(url)
                 }
                 continue
             }
@@ -163,9 +193,7 @@ final class TrayManager: ObservableObject {
                 accepted = true
                 provider.loadDataRepresentation(forTypeIdentifier: type) { [weak self] data, _ in
                     guard let self, let data, let url = self.writeCachedImage(data: data) else { return }
-                    DispatchQueue.main.async {
-                        self.addTrayItem(self.makeFileItem(url: url))
-                    }
+                    self.ingestFileURL(url)
                 }
                 break
             }
@@ -198,9 +226,8 @@ final class TrayManager: ObservableObject {
 
     // MARK: - Screenshot Monitoring
 
-    private func startScreenshotMonitor() {
-        let screenshotDir = screenshotDirectory()
-        monitorFD = Darwin.open(screenshotDir, O_EVTONLY)
+    private func startScreenshotMonitor(in dir: String) {
+        monitorFD = Darwin.open(dir, O_EVTONLY)
         guard monitorFD >= 0 else { return }
 
         let source = DispatchSource.makeFileSystemObjectSource(
@@ -209,7 +236,7 @@ final class TrayManager: ObservableObject {
             queue: .main
         )
         source.setEventHandler { [weak self] in
-            self?.scanForNewScreenshots(in: screenshotDir)
+            self?.scanForNewScreenshots(in: dir)
         }
         source.setCancelHandler { [weak self] in
             if let fd = self?.monitorFD, fd >= 0 {
@@ -221,7 +248,7 @@ final class TrayManager: ObservableObject {
         fileMonitor = source
     }
 
-    private func screenshotDirectory() -> String {
+    private static func resolveScreenshotDirectory() -> String {
         if let output = try? Process.run(
             URL(fileURLWithPath: "/usr/bin/defaults"),
             arguments: ["read", "com.apple.screencapture", "location"]
@@ -234,17 +261,34 @@ final class TrayManager: ObservableObject {
         return NSHomeDirectory() + "/Desktop"
     }
 
+    /// Language-agnostic screenshot detection: the OS writes a Spotlight
+    /// metadata attribute at save time. Falls back to common filename
+    /// prefixes across a handful of locales for cases where the metadata
+    /// store hasn't indexed the file yet.
+    private func isScreenshotFile(path: String) -> Bool {
+        // `kMDItemIsScreenCapture` isn't bridged into Swift as a named
+        // symbol on all SDKs — pass the attribute name as a string.
+        if let item = MDItemCreate(kCFAllocatorDefault, path as CFString),
+           let attr = MDItemCopyAttribute(item, "kMDItemIsScreenCapture" as CFString) as? Bool, attr {
+            return true
+        }
+        let lower = (path as NSString).lastPathComponent.lowercased()
+        return lower.contains("screenshot")
+            || lower.contains("screen shot")
+            || lower.contains("capture")
+            || lower.contains("bildschirm")
+    }
+
     private func scanForNewScreenshots(in dir: String) {
         let fm = FileManager.default
         guard let files = try? fm.contentsOfDirectory(atPath: dir) else { return }
 
         let now = Date()
         for file in files {
-            guard file.lowercased().hasSuffix(".png"),
-                  file.lowercased().contains("screenshot") || file.lowercased().contains("screen shot")
-            else { continue }
-
+            guard file.lowercased().hasSuffix(".png") else { continue }
             let path = (dir as NSString).appendingPathComponent(file)
+            guard isScreenshotFile(path: path) else { continue }
+
             guard let attrs = try? fm.attributesOfItem(atPath: path),
                   let modDate = attrs[.modificationDate] as? Date,
                   now.timeIntervalSince(modDate) < 3
@@ -256,9 +300,14 @@ final class TrayManager: ObservableObject {
                 return false
             }) { continue }
 
-            let image = NSImage(contentsOfFile: path)
-            let thumbnail = image?.resized(maxDimension: 200)
-            addTrayItem(TrayItem(timestamp: Date(), kind: .screenshot(url), thumbnail: thumbnail, rawData: nil))
+            // Decode + resize off-main — screenshots can be 4K/5K PNGs and
+            // `lockFocus`/`unlockFocus` on the main thread hitches the notch.
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let thumbnail = NSImage(contentsOfFile: path)?.resized(maxDimension: 200)
+                DispatchQueue.main.async {
+                    self?.addTrayItem(TrayItem(timestamp: Date(), kind: .screenshot(url), thumbnail: thumbnail, rawData: nil))
+                }
+            }
         }
     }
 
@@ -271,8 +320,8 @@ final class TrayManager: ObservableObject {
         }
         withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
             trayItems.insert(item, at: 0)
-            if trayItems.count > maxItems {
-                trayItems.removeLast(trayItems.count - maxItems)
+            if trayItems.count > maxTrayItems {
+                trayItems.removeLast(trayItems.count - maxTrayItems)
             }
         }
     }
@@ -280,8 +329,8 @@ final class TrayManager: ObservableObject {
     private func addClipboardItem(_ item: TrayItem) {
         withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
             clipboardItems.insert(item, at: 0)
-            if clipboardItems.count > maxItems {
-                clipboardItems.removeLast(clipboardItems.count - maxItems)
+            if clipboardItems.count > maxClipboardItems {
+                clipboardItems.removeLast(clipboardItems.count - maxClipboardItems)
             }
         }
     }
@@ -292,13 +341,27 @@ final class TrayManager: ObservableObject {
         }
     }
 
-    private func makeFileItem(url: URL) -> TrayItem {
+    /// Insert a file URL into the tray, decoding any image thumbnail on a
+    /// background queue. Callable from any thread.
+    private func ingestFileURL(_ url: URL) {
         let ext = url.pathExtension.lowercased()
-        var thumb: NSImage? = nil
-        if Self.imageExtensions.contains(ext), let img = NSImage(contentsOf: url) {
-            thumb = img.resized(maxDimension: 200)
+        let isImage = Self.imageExtensions.contains(ext)
+
+        if isImage {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let thumb = NSImage(contentsOf: url)?.resized(maxDimension: 200)
+                DispatchQueue.main.async {
+                    self?.addTrayItem(TrayItem(timestamp: Date(), kind: .fileURL(url), thumbnail: thumb, rawData: nil))
+                }
+            }
+        } else {
+            let item = TrayItem(timestamp: Date(), kind: .fileURL(url), thumbnail: nil, rawData: nil)
+            if Thread.isMainThread {
+                addTrayItem(item)
+            } else {
+                DispatchQueue.main.async { [weak self] in self?.addTrayItem(item) }
+            }
         }
-        return TrayItem(timestamp: Date(), kind: .fileURL(url), thumbnail: thumb, rawData: nil)
     }
 
     private func writeCachedImage(data: Data) -> URL? {
@@ -323,6 +386,29 @@ final class TrayManager: ObservableObject {
             return url
         } catch {
             return nil
+        }
+    }
+
+    /// Drop-out cache grows unbounded otherwise. Delete anything older than
+    /// a week on each `start()`. Runs off-main — no rush.
+    private func pruneCacheDir() {
+        let fm = FileManager.default
+        guard let dir = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("zydock/tray", isDirectory: true),
+              fm.fileExists(atPath: dir.path)
+        else { return }
+        DispatchQueue.global(qos: .utility).async {
+            let cutoff = Date().addingTimeInterval(-7 * 86400)
+            let keys: [URLResourceKey] = [.contentModificationDateKey]
+            guard let entries = try? fm.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: keys
+            ) else { return }
+            for url in entries {
+                let values = try? url.resourceValues(forKeys: Set(keys))
+                if let mod = values?.contentModificationDate, mod < cutoff {
+                    try? fm.removeItem(at: url)
+                }
+            }
         }
     }
 }

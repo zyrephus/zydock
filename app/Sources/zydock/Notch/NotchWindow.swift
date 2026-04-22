@@ -116,9 +116,12 @@ final class NotchWindow {
                 scheduleCollapse()
             }
         } else if collapsedZone.contains(loc) {
-            // If the user is dragging (any mouse button held) into the notch,
-            // force the Tray tab so they have a drop target.
-            if NSEvent.pressedMouseButtons != 0 {
+            // If the user is dragging (any mouse button held) into the notch
+            // AND the Tray module is enabled, force the Tray tab so they
+            // have a drop target. Without the registry check the persisted
+            // `selectedTabID` can point at a disabled module.
+            if NSEvent.pressedMouseButtons != 0,
+               ModuleRegistry.shared.isEnabled("tray") {
                 state.selectedTabID = "tray"
             }
             expand()
