@@ -55,6 +55,7 @@ struct NotchView: View {
                     .padding(.top, notchHeight)
                     .opacity(state.isExpanded ? 1 : 0)
                     .allowsHitTesting(state.isExpanded)
+                    .clipShape(NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius))
             }
             .onAppear {
                 metrics.start()
