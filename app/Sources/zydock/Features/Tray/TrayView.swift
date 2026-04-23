@@ -76,49 +76,61 @@ struct TrayView: View {
     }
 
     private func trayCell(_ item: TrayItem) -> some View {
-        Button {
-            trayManager.copyToClipboard(item)
-            flashCopied(item.id)
-        } label: {
-            VStack(spacing: 4) {
-                ZStack {
-                    cellThumbnail(for: item)
-                        .frame(width: thumbSize, height: thumbSize)
-                    if copiedItemID == item.id {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.black.opacity(0.55))
+        ZStack(alignment: .topTrailing) {
+            Button {
+                trayManager.copyToClipboard(item)
+                flashCopied(item.id)
+            } label: {
+                VStack(spacing: 4) {
+                    ZStack {
+                        cellThumbnail(for: item)
                             .frame(width: thumbSize, height: thumbSize)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.green)
-                            .transition(.scale.combined(with: .opacity))
-                    } else if hoveredItemID == item.id {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.black.opacity(0.45))
-                            .frame(width: thumbSize, height: thumbSize)
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .transition(.opacity)
+                        if copiedItemID == item.id {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.black.opacity(0.55))
+                                .frame(width: thumbSize, height: thumbSize)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.green)
+                                .transition(.scale.combined(with: .opacity))
+                        } else if hoveredItemID == item.id {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.black.opacity(0.45))
+                                .frame(width: thumbSize, height: thumbSize)
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .transition(.opacity)
+                        }
                     }
-                }
-                .frame(height: thumbSize)
-                .animation(.easeInOut(duration: 0.12), value: hoveredItemID)
+                    .frame(height: thumbSize)
+                    .animation(.easeInOut(duration: 0.12), value: hoveredItemID)
 
-                Text(label(for: item))
-                    .font(.system(size: Typography.secondary, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.75))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: .infinity)
+                    Text(label(for: item))
+                        .font(.system(size: Typography.secondary, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity)
+                }
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(NotchPressStyle())
+            .onDrag { trayManager.makeDragProvider(for: item) }
+
+            if hoveredItemID == item.id && copiedItemID != item.id {
+                removeBadge {
+                    trayManager.removeTrayItem(item)
+                    hoveredItemID = nil
+                }
+                .offset(x: 4, y: -4)
+                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+            }
         }
-        .buttonStyle(NotchPressStyle())
+        .animation(.easeInOut(duration: 0.12), value: hoveredItemID == item.id && copiedItemID != item.id)
         .onHover { hovering in
             hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
         }
-        .onDrag { trayManager.makeDragProvider(for: item) }
     }
 
     private var thumbSize: CGFloat { 44 }
@@ -181,38 +193,70 @@ struct TrayView: View {
     }
 
     private func clipboardRow(_ item: TrayItem) -> some View {
-        Button {
-            trayManager.copyToClipboard(item)
-            flashCopied(item.id)
-        } label: {
-            HStack(spacing: 8) {
-                Text(item.previewText ?? "")
-                    .font(.system(size: Typography.primary))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 6) {
+            Button {
+                trayManager.copyToClipboard(item)
+                flashCopied(item.id)
+            } label: {
+                HStack(spacing: 8) {
+                    Text(item.previewText ?? "")
+                        .font(.system(size: Typography.primary))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                if copiedItemID == item.id {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.green)
-                        .transition(.opacity)
-                } else if hoveredItemID == item.id {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .transition(.opacity)
+                    if copiedItemID == item.id {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.green)
+                            .transition(.opacity)
+                    } else if hoveredItemID == item.id {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .transition(.opacity)
+                    }
                 }
+                .padding(.vertical, 4)
+                .padding(.leading, 4)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 4)
-            .contentShape(Rectangle())
+            .buttonStyle(NotchPressStyle())
+
+            if hoveredItemID == item.id && copiedItemID != item.id {
+                removeBadge {
+                    trayManager.removeClipboardItem(item)
+                    hoveredItemID = nil
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+            }
         }
-        .buttonStyle(NotchPressStyle())
+        .padding(.trailing, 4)
+        .animation(.easeInOut(duration: 0.12), value: hoveredItemID == item.id && copiedItemID != item.id)
         .onHover { hovering in
             hoveredItemID = hovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
         }
+    }
+
+    // MARK: - Remove badge
+
+    private func removeBadge(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.75))
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                Image(systemName: "xmark")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .frame(width: 14, height: 14)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help("Remove")
     }
 
     // MARK: - Shared

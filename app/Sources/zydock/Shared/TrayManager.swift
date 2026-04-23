@@ -335,15 +335,28 @@ final class TrayManager: ObservableObject {
         }
     }
 
-    private func removeTrayItem(_ item: TrayItem) {
+    func removeTrayItem(_ item: TrayItem) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             trayItems.removeAll { $0.id == item.id }
         }
     }
 
+    func removeClipboardItem(_ item: TrayItem) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            clipboardItems.removeAll { $0.id == item.id }
+        }
+    }
+
     /// Insert a file URL into the tray, decoding any image thumbnail on a
     /// background queue. Callable from any thread.
-    private func ingestFileURL(_ url: URL) {
+    private func ingestFileURL(_ rawURL: URL) {
+        // Pasteboard/drop often hands us a file *reference* URL
+        // (`file:///.file/id=…`) rather than a path URL. Those compare !=
+        // the path URL produced by the screenshot monitor, so dedup misses,
+        // and `FileManager.fileExists(atPath:)` fails because `.path` on a
+        // reference URL isn't a real filesystem path. Resolve to a path URL
+        // once, here, so the rest of the pipeline can assume path form.
+        let url = ((rawURL as NSURL).filePathURL ?? rawURL).standardizedFileURL
         let ext = url.pathExtension.lowercased()
         let isImage = Self.imageExtensions.contains(ext)
 
