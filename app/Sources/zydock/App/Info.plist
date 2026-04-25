@@ -22,9 +22,9 @@
     <!-- Needed to draw above other windows -->
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
-    <!-- Lets zydock query Music.app / Spotify for Now Playing info via AppleScript -->
+    <!-- Used to read Now Playing from Music/Spotify and to navigate Calendar.app to a selected day. -->
     <key>NSAppleEventsUsageDescription</key>
-    <string>zydock reads Now Playing info (title, artist, playback position) from Music and Spotify.</string>
+    <string>zydock controls other apps to read Now Playing info from Music and Spotify, and to navigate Calendar to a selected day.</string>
     <!-- Required so zydock can watch the Desktop for new screenshots and surface them in the Tray tab. -->
     <key>NSDesktopFolderUsageDescription</key>
     <string>zydock watches your screenshot folder so new screenshots automatically appear in the Tray.</string>
@@ -32,5 +32,10 @@
     <string>zydock accesses files you drop into the Tray. It only reads paths you explicitly drag in.</string>
     <key>NSDownloadsFolderUsageDescription</key>
     <string>zydock accesses files you drop into the Tray. It only reads paths you explicitly drag in.</string>
+    <!-- Read calendar events for the Home tab calendar widget. -->
+    <key>NSCalendarsUsageDescription</key>
+    <string>zydock displays your upcoming events on the Home tab.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>zydock displays your upcoming events on the Home tab.</string>
 </dict>
 </plist>

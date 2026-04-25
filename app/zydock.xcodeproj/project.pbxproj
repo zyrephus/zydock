@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		043970882FE54A150AF518F1 /* CalendarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69A243628ABC94AD708BC3B /* CalendarSection.swift */; };
 		08E380B3E0E9539EBDF2BADB /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667DC680149DA98BAC15CB82 /* Typography.swift */; };
 		100BCEC05F9048E78066AE1B /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F87AFA2819772B059B3B46E2 /* NotchShape.swift */; };
+		113E7E2A9854ED95641AEA41 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C09440C5110EE567BDC6CDEF /* CalendarManager.swift */; };
 		1AB241F23EC6A54CFED99457 /* MusicWaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCA26E0BF1E656B00619B33 /* MusicWaveView.swift */; };
 		1DC48DD850F243E74949F707 /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03110D4F809BAEFBB9624C8 /* NotchTabBar.swift */; };
 		20E0F293D3657B3884CBE914 /* NotchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C5EC09A79A30F57094FB74 /* NotchState.swift */; };
@@ -30,11 +32,13 @@
 		A972657A6FB1FC724A16F563 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D5E5273F7397E40BE1820A /* NowPlayingManager.swift */; };
 		AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B19B9D105FDA667399BD91B /* TabContentView.swift */; };
 		B64E466FDFACBDA551E44AD8 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9285D50F59B0C02072B235BD /* AppIcon.icns */; };
+		D1333CFFDDFCFB5FD4D25932 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69FBAAB427CA4C34E27908BA /* SystemView.swift */; };
 		E13285AA78089DF716DB34FE /* TrayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F016A014A0F39E0DA74374 /* TrayManager.swift */; };
 		E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */; };
 		E8ED558EAFD45D86F08E7EA6 /* LoadersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D33803455E0CC06D52C2B2 /* LoadersView.swift */; };
 		E9A44D076BAE0020CFE3429F /* zydockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00227FCD57E48E945B9DAB05 /* zydockApp.swift */; };
 		EA958190D3FCBCB981A5DD4E /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C229090C1EA2D7B39B63001 /* HotkeyManager.swift */; };
+		EBCE1891476F9B66DB56A093 /* SystemModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0ED6701A807F81A0FC5E628 /* SystemModule.swift */; };
 		ED3A9736E342AD6B50C53FC4 /* NotchSettingsButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFEE1FE31D3B21CE0796DEFA /* NotchSettingsButton.swift */; };
 		F54B2607C8D2503FE5DBA7B8 /* MetricsPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FB248C59177AA59CA00BF1A /* MetricsPoller.swift */; };
 		F6E341DEB8BC0A2574588D94 /* NotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA74C03DFBEA19F4CF55E381 /* NotchWindow.swift */; };
@@ -57,19 +61,23 @@
 		5C229090C1EA2D7B39B63001 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		61C5EC09A79A30F57094FB74 /* NotchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchState.swift; sourceTree = "<group>"; };
 		667DC680149DA98BAC15CB82 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		69FBAAB427CA4C34E27908BA /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
 		6A7EA3DCFACA653C483EE405 /* TrayModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayModule.swift; sourceTree = "<group>"; };
 		71D5E5273F7397E40BE1820A /* NowPlayingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingManager.swift; sourceTree = "<group>"; };
 		7565C587FB450839EB95070E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7FD708A623198F493B3499C9 /* TrayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayController.swift; sourceTree = "<group>"; };
 		90E901B2CBF504D9FCB25E35 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		9285D50F59B0C02072B235BD /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		A0ED6701A807F81A0FC5E628 /* SystemModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemModule.swift; sourceTree = "<group>"; };
 		A422A1E006C1343FFA46D20C /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
 		B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeView.swift; sourceTree = "<group>"; };
 		BA74C03DFBEA19F4CF55E381 /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
 		BE863084F10FB558DFA8EAFE /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		BFDDD8F019336230817E6296 /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
+		C09440C5110EE567BDC6CDEF /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
 		C4D33803455E0CC06D52C2B2 /* LoadersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadersView.swift; sourceTree = "<group>"; };
 		CEA436057CD97D43AFE86C3E /* ModuleRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleRegistry.swift; sourceTree = "<group>"; };
+		D69A243628ABC94AD708BC3B /* CalendarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSection.swift; sourceTree = "<group>"; };
 		D91201566BCB97BF5AB99FCD /* ClaudeCodeModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeModule.swift; sourceTree = "<group>"; };
 		DFEE1FE31D3B21CE0796DEFA /* NotchSettingsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsButton.swift; sourceTree = "<group>"; };
 		E03110D4F809BAEFBB9624C8 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
@@ -105,6 +113,15 @@
 			path = Sources/zydock;
 			sourceTree = "<group>";
 		};
+		2DC80029B05154882C635B0D /* System */ = {
+			isa = PBXGroup;
+			children = (
+				A0ED6701A807F81A0FC5E628 /* SystemModule.swift */,
+				69FBAAB427CA4C34E27908BA /* SystemView.swift */,
+			);
+			path = System;
+			sourceTree = "<group>";
+		};
 		3094E3F0A706A72F87A3AC48 /* Daemon */ = {
 			isa = PBXGroup;
 			children = (
@@ -133,6 +150,15 @@
 				667DC680149DA98BAC15CB82 /* Typography.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		4671941BD9357D7F87829B02 /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				C09440C5110EE567BDC6CDEF /* CalendarManager.swift */,
+				D69A243628ABC94AD708BC3B /* CalendarSection.swift */,
+			);
+			path = Calendar;
 			sourceTree = "<group>";
 		};
 		6A32A7F5ED9816F3996D8340 /* Settings */ = {
@@ -209,8 +235,10 @@
 		F1D6B7AE6F1D2C9F6E3185AF /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				4671941BD9357D7F87829B02 /* Calendar */,
 				E6B8F0C4C6D6E1AD906CC474 /* ClaudeCode */,
 				B19DA44DAE51E6D18448FC57 /* NowPlaying */,
+				2DC80029B05154882C635B0D /* System */,
 				1E74AC7076521F9691616BDA /* Tray */,
 			);
 			path = Features;
@@ -307,6 +335,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				5FC993A256CF8227B8B003B5 /* AlbumArtView.swift in Sources */,
+				113E7E2A9854ED95641AEA41 /* CalendarManager.swift in Sources */,
+				043970882FE54A150AF518F1 /* CalendarSection.swift in Sources */,
 				3787BCC32FF8B54CAB58B24A /* ClaudeCodeController.swift in Sources */,
 				5A4C9B2BFC31713CEC9394AC /* ClaudeCodeModule.swift in Sources */,
 				E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */,
@@ -328,6 +358,8 @@
 				45E242EF3A3D587800D62484 /* SettingsView.swift in Sources */,
 				7FDBB0B0814D76F268F9BF93 /* SettingsWindowController.swift in Sources */,
 				33820CD4836DC663E2AF9187 /* ShortcutRecorderView.swift in Sources */,
+				EBCE1891476F9B66DB56A093 /* SystemModule.swift in Sources */,
+				D1333CFFDDFCFB5FD4D25932 /* SystemView.swift in Sources */,
 				AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */,
 				2C0EAFBA7B217D1E160C2DC6 /* TrayController.swift in Sources */,
 				E13285AA78089DF716DB34FE /* TrayManager.swift in Sources */,
