@@ -41,7 +41,11 @@ struct TrayView: View {
     private var traySection: some View {
         Group {
             if trayManager.trayItems.isEmpty {
-                emptyState(icon: "tray")
+                if trayManager.screenshotAccess == .denied {
+                    deniedAccessView
+                } else {
+                    emptyState(icon: "tray")
+                }
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVGrid(columns: gridColumns, spacing: 8) {
@@ -266,6 +270,24 @@ struct TrayView: View {
             .font(.system(size: 18))
             .foregroundStyle(.white.opacity(0.18))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var deniedAccessView: some View {
+        VStack(spacing: 4) {
+            Spacer(minLength: 0)
+            Text("Desktop access denied")
+                .font(.system(size: Typography.secondary))
+                .foregroundStyle(.white.opacity(0.45))
+            Button(action: { trayManager.openScreenshotSettings() }) {
+                Text("Open Settings")
+                    .font(.system(size: Typography.secondary, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .underline()
+            }
+            .buttonStyle(.plain)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func flashCopied(_ id: UUID) {

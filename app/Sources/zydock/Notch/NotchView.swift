@@ -8,6 +8,7 @@ struct NotchView: View {
 
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
+    @StateObject private var calendar = CalendarManager()
     @StateObject private var ccController = ClaudeCodeController()
     @StateObject private var trayController = TrayController()
     @ObservedObject private var registry: ModuleRegistry = .shared
@@ -47,8 +48,10 @@ struct NotchView: View {
             .overlay(alignment: .top) {
                 TabContentView(
                     selectedTabID: resolvedSelectedTabID,
+                    isExpanded: state.isExpanded,
                     nowPlaying: nowPlaying,
                     metrics: metrics,
+                    calendar: calendar,
                     sessionState: ccController.sessionState,
                     trayManager: trayController.trayManager
                 )
@@ -59,6 +62,7 @@ struct NotchView: View {
             }
             .onAppear {
                 metrics.start()
+                calendar.start()
                 syncModuleRuntimes()
             }
             .onChange(of: registry.enabledIDs) { _ in

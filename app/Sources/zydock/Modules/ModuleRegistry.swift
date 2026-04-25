@@ -12,7 +12,8 @@ final class ModuleRegistry: ObservableObject {
     private init() {
         let modules: [Module] = [
             TrayModule(),
-            ClaudeCodeModule()
+            ClaudeCodeModule(),
+            SystemModule()
         ]
         self.all = modules
 

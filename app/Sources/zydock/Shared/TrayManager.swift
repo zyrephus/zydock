@@ -46,8 +46,15 @@ final class TrayItem: Identifiable {
 }
 
 final class TrayManager: ObservableObject {
+    enum ScreenshotAuthorization {
+        case notDetermined
+        case denied
+        case authorized
+    }
+
     @Published var clipboardItems: [TrayItem] = []
     @Published var trayItems: [TrayItem] = []
+    @Published var screenshotAccess: ScreenshotAuthorization = .notDetermined
 
     static let imageExtensions: Set<String> = [
         "png", "jpg", "jpeg", "gif", "webp", "heic", "tiff", "tif", "bmp"
@@ -67,6 +74,22 @@ final class TrayManager: ObservableObject {
             self?.checkClipboard()
         }
         pruneCacheDir()
+        installScreenshotMonitor()
+    }
+
+    /// Re-attempt monitor setup after the user (presumably) granted Desktop
+    /// access in System Settings. No-op if already authorized.
+    func requestScreenshotAccess() {
+        installScreenshotMonitor()
+    }
+
+    func openScreenshotSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func installScreenshotMonitor() {
         // `defaults read` via fork+waitUntilExit blocks the caller — resolve
         // the screenshot directory on a background queue, then hop back to
         // main to install the DispatchSource.
@@ -227,8 +250,30 @@ final class TrayManager: ObservableObject {
     // MARK: - Screenshot Monitoring
 
     private func startScreenshotMonitor(in dir: String) {
+        // Idempotent: a successful monitor stays — calling this again from
+        // `requestScreenshotAccess` after a grant is a no-op.
+        if screenshotAccess == .authorized && fileMonitor != nil { return }
+
+        // Tear down any previous (failed) monitor before retrying.
+        fileMonitor?.cancel()
+        fileMonitor = nil
+        if monitorFD >= 0 {
+            Darwin.close(monitorFD)
+            monitorFD = -1
+        }
+
         monitorFD = Darwin.open(dir, O_EVTONLY)
-        guard monitorFD >= 0 else { return }
+        guard monitorFD >= 0 else {
+            // EPERM/EACCES = TCC denied Desktop (or wherever screenshots land).
+            // Other errors (ENOENT etc.) are environmental and shouldn't be
+            // surfaced as a permission UI.
+            let err = errno
+            if err == EPERM || err == EACCES {
+                screenshotAccess = .denied
+            }
+            return
+        }
+        screenshotAccess = .authorized
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: monitorFD,
