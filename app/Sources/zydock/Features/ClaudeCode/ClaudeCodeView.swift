@@ -114,6 +114,16 @@ extension DockState {
         default:                 return nil
         }
     }
+
+    var attentionPriority: Int {
+        switch self {
+        case .waitingPermission: return 4
+        case .toolActive:        return 3
+        case .thinking:          return 2
+        case .idle:              return 1
+        case .disconnected:      return 0
+        }
+    }
 }
 
 struct SessionLoaderView: View {

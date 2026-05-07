@@ -33,6 +33,7 @@
 		AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B19B9D105FDA667399BD91B /* TabContentView.swift */; };
 		B64E466FDFACBDA551E44AD8 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9285D50F59B0C02072B235BD /* AppIcon.icns */; };
 		D1333CFFDDFCFB5FD4D25932 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69FBAAB427CA4C34E27908BA /* SystemView.swift */; };
+		DCF24035DBDD9BCC6D4446D2 /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB1B8A496E27B2674511856 /* WeatherManager.swift */; };
 		E13285AA78089DF716DB34FE /* TrayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37F016A014A0F39E0DA74374 /* TrayManager.swift */; };
 		E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */; };
 		E8ED558EAFD45D86F08E7EA6 /* LoadersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D33803455E0CC06D52C2B2 /* LoadersView.swift */; };
@@ -72,6 +73,7 @@
 		A422A1E006C1343FFA46D20C /* NotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchView.swift; sourceTree = "<group>"; };
 		B9CFA112ED5C73A7B47B3CBA /* ClaudeCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeView.swift; sourceTree = "<group>"; };
 		BA74C03DFBEA19F4CF55E381 /* NotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindow.swift; sourceTree = "<group>"; };
+		BDB1B8A496E27B2674511856 /* WeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherManager.swift; sourceTree = "<group>"; };
 		BE863084F10FB558DFA8EAFE /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		BFDDD8F019336230817E6296 /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
 		C09440C5110EE567BDC6CDEF /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
@@ -189,6 +191,14 @@
 			path = Modules;
 			sourceTree = "<group>";
 		};
+		ADA3B0A18DDD3CC12EDBA0D3 /* Weather */ = {
+			isa = PBXGroup;
+			children = (
+				BDB1B8A496E27B2674511856 /* WeatherManager.swift */,
+			);
+			path = Weather;
+			sourceTree = "<group>";
+		};
 		AF473C8ABE49C69C21B96EFE = {
 			isa = PBXGroup;
 			children = (
@@ -240,6 +250,7 @@
 				B19DA44DAE51E6D18448FC57 /* NowPlaying */,
 				2DC80029B05154882C635B0D /* System */,
 				1E74AC7076521F9691616BDA /* Tray */,
+				ADA3B0A18DDD3CC12EDBA0D3 /* Weather */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -366,6 +377,7 @@
 				59C0E6358FC7B2EF9384CB19 /* TrayModule.swift in Sources */,
 				40F724D329E839EF068A5CAC /* TrayView.swift in Sources */,
 				08E380B3E0E9539EBDF2BADB /* Typography.swift in Sources */,
+				DCF24035DBDD9BCC6D4446D2 /* WeatherManager.swift in Sources */,
 				574EE0751FB9FC14597151D6 /* WebSocketClient.swift in Sources */,
 				E9A44D076BAE0020CFE3429F /* zydockApp.swift in Sources */,
 			);

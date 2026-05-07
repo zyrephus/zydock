@@ -23,14 +23,17 @@ struct CalendarSection: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 0) {
             monthHeader
+                .padding(.bottom, 6)
             carousel
-                .frame(height: 50)
+                .frame(height: 42)
+            backToTodayRow
+                .frame(height: 14)
             eventRows
                 .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 6)
         }
-        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { resetToToday(animated: false) }
         .onChange(of: isExpanded) { expanded in
@@ -54,6 +57,26 @@ struct CalendarSection: View {
             .font(.system(size: Typography.secondary, weight: .medium))
             .foregroundStyle(.white.opacity(0.45))
             .animation(.easeInOut(duration: 0.18), value: monthString(for: selectedDate))
+            .frame(maxWidth: .infinity)
+    }
+
+    private var backToTodayRow: some View {
+        ZStack {
+            if !cal.isDate(selectedDate, inSameDayAs: today) {
+                Button(action: { resetToToday(animated: true) }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .frame(width: 30, height: 14)
+                        .background(Capsule().fill(Color.white.opacity(0.10)))
+                }
+                .buttonStyle(NotchPressStyle())
+                .help("Jump to today")
+                .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.easeInOut(duration: 0.18), value: cal.isDate(selectedDate, inSameDayAs: today))
     }
 
     private func openCalendarApp(on date: Date) {
@@ -80,7 +103,7 @@ struct CalendarSection: View {
     private func monthString(for date: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "MMMM yyyy"
-        return f.string(from: date).uppercased()
+        return f.string(from: date)
     }
 
     // MARK: - Carousel
@@ -276,7 +299,6 @@ struct CalendarSection: View {
         let events = Array(calendar.events(on: selectedDate).prefix(3))
         if events.isEmpty {
             VStack {
-                Spacer(minLength: 0)
                 Text("No events")
                     .font(.system(size: Typography.secondary))
                     .foregroundStyle(.white.opacity(0.35))
