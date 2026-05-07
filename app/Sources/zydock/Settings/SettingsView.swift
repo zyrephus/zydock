@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var conflicts: [String] = []
     @State private var shortcutDisplay: String = ""
     @ObservedObject private var registry: ModuleRegistry = .shared
+    @AppStorage("weatherUnit") private var weatherUnit: String = TemperatureUnit.fahrenheit.rawValue
 
     var body: some View {
         Form {
@@ -46,6 +47,16 @@ struct SettingsView: View {
                 Text("Press the shortcut once to pin the notch open; press again to collapse. Only detects macOS system shortcut conflicts, not third-party apps.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+
+            Section("Weather") {
+                Picker("Temperature unit:", selection: $weatherUnit) {
+                    ForEach(TemperatureUnit.allCases) { u in
+                        Text(u.label).tag(u.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
             }
 
             Section("Modules") {

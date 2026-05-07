@@ -4,7 +4,6 @@ struct NotchTabBar: View {
     @Binding var selected: String
     var itemSize: CGFloat
     @ObservedObject var registry: ModuleRegistry = .shared
-    @Namespace private var ns
 
     private let spacing: CGFloat = 4
 
@@ -27,23 +26,15 @@ struct NotchTabBar: View {
                 selected = id
             }
         } label: {
-            ZStack {
-                if isSelected {
-                    Capsule()
-                        .fill(Color.white.opacity(0.14))
-                        .padding(.vertical, 5)
-                        .matchedGeometryEffect(id: "tabPill", in: ns)
-                }
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(
-                        isSelected
-                            ? Color.white
-                            : Color.white.opacity(0.45)
-                    )
-            }
-            .frame(width: itemSize, height: itemSize)
-            .contentShape(Capsule())
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(
+                    isSelected
+                        ? Color.white
+                        : Color.white.opacity(0.45)
+                )
+                .frame(width: itemSize, height: itemSize)
+                .contentShape(Rectangle())
         }
         .buttonStyle(NotchPressStyle())
     }

@@ -85,12 +85,17 @@ private struct MusicSection: View {
 
     var body: some View {
         GeometryReader { geo in
+            let textMinWidth: CGFloat = 140
+            let spacing: CGFloat = 10
+            let trailing: CGFloat = 10
+            let widthBudget = max(0, geo.size.width - textMinWidth - spacing - trailing)
+            let artSize = max(0, min(geo.size.height, widthBudget))
             HStack(alignment: .top, spacing: 10) {
                 Button(action: { nowPlaying.openActiveApp() }) {
                     AlbumArtView(image: nowPlaying.artwork, cornerRadius: Layout.bottomCornerRadius)
-                        .frame(width: geo.size.height, height: geo.size.height)
+                        .frame(width: artSize, height: artSize)
                         .background(alignment: .center) {
-                            backlight(size: geo.size.height)
+                            backlight(size: artSize)
                         }
                 }
                 .buttonStyle(NotchPressStyle())

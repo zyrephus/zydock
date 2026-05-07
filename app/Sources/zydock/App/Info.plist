@@ -37,5 +37,10 @@
     <string>zydock displays your upcoming events on the Home tab.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>zydock displays your upcoming events on the Home tab.</string>
+    <!-- Approximate location is used to fetch local weather conditions for the Home tab. -->
+    <key>NSLocationUsageDescription</key>
+    <string>zydock uses your approximate location to show current weather conditions in the calendar widget.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>zydock uses your approximate location to show current weather conditions in the calendar widget.</string>
 </dict>
 </plist>

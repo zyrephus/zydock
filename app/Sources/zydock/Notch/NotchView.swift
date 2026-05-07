@@ -9,6 +9,7 @@ struct NotchView: View {
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
     @StateObject private var calendar = CalendarManager()
+    @StateObject private var weather = WeatherManager()
     @StateObject private var ccController = ClaudeCodeController()
     @StateObject private var trayController = TrayController()
     @ObservedObject private var registry: ModuleRegistry = .shared
@@ -63,6 +64,7 @@ struct NotchView: View {
             .onAppear {
                 metrics.start()
                 calendar.start()
+                weather.start()
                 syncModuleRuntimes()
             }
             .onChange(of: registry.enabledIDs) { _ in
@@ -126,14 +128,15 @@ struct NotchView: View {
 
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
-                if ccEnabled, let sessionState = ccController.sessionState {
-                    ForEach(sessionState.activeSessions.prefix(2)) { session in
-                        SessionLoaderView(state: session.state)
-                            .frame(width: rightEarSize, height: rightEarSize)
-                    }
+                if ccEnabled,
+                   let sessionState = ccController.sessionState,
+                   let topSession = sessionState.activeSessions.max(by: { $0.state.attentionPriority < $1.state.attentionPriority }) {
+                    SessionLoaderView(state: topSession.state)
+                        .frame(width: rightEarSize, height: rightEarSize)
                 }
                 MusicWaveView(isPlaying: nowPlaying.isPlaying)
                     .frame(width: waveWidth, height: waveHeight)
+                WeatherBadge(weather: weather)
                 NotchSettingsButton(size: artSize)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
