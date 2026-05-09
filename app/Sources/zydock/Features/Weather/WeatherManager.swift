@@ -35,11 +35,15 @@ struct WeatherBadge: View {
                         Image(systemName: snap.symbolName)
                             .symbolRenderingMode(.multicolor)
                             .font(.system(size: 14))
+                            .frame(width: 18, height: 16)
                         Text("\(display(snap.temperatureC))°")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
                             .monospacedDigit()
+                            .fixedSize()
                     }
+                    .fixedSize()
+                    .drawingGroup()
                 }
                 .buttonStyle(NotchPressStyle())
                 .help(snap.description)
