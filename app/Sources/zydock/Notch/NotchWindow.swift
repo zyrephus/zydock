@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import SwiftUI
 
 final class NotchWindow {
@@ -205,6 +206,7 @@ final class NotchWindow {
         isExpanded = true
         withAnimation(.easeInOut(duration: 0.22)) { state.isExpanded = true }
         animate(to: expandedFrame(), duration: 0.22)
+        registerTabHotkeys()
     }
 
     private func collapse() {
@@ -213,6 +215,44 @@ final class NotchWindow {
         isExpanded = false
         withAnimation(.easeInOut(duration: 0.28)) { state.isExpanded = false }
         animate(to: collapsedFrame(), duration: 0.28)
+        unregisterTabHotkeys()
+    }
+
+    // MARK: - Tab cycling hotkeys (only registered while expanded)
+
+    private let nextTabHotkeyID: UInt32 = 100
+    private let prevTabHotkeyID: UInt32 = 101
+    private let tabKeyCode: UInt32 = 48
+
+    private func registerTabHotkeys() {
+        HotkeyManager.shared.registerExtra(
+            id: nextTabHotkeyID,
+            keyCode: tabKeyCode,
+            modifiers: UInt32(controlKey)
+        ) { [weak self] in self?.cycleTab(forward: true) }
+
+        HotkeyManager.shared.registerExtra(
+            id: prevTabHotkeyID,
+            keyCode: tabKeyCode,
+            modifiers: UInt32(controlKey | shiftKey)
+        ) { [weak self] in self?.cycleTab(forward: false) }
+    }
+
+    private func unregisterTabHotkeys() {
+        HotkeyManager.shared.unregisterExtra(id: nextTabHotkeyID)
+        HotkeyManager.shared.unregisterExtra(id: prevTabHotkeyID)
+    }
+
+    private func cycleTab(forward: Bool) {
+        let ids = ["home"] + ModuleRegistry.shared.enabled.map(\.id)
+        guard !ids.isEmpty else { return }
+        let idx = ids.firstIndex(of: state.selectedTabID) ?? 0
+        let next = forward
+            ? (idx + 1) % ids.count
+            : (idx - 1 + ids.count) % ids.count
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            state.selectedTabID = ids[next]
+        }
     }
 
     func togglePinned() {

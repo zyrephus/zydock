@@ -9,11 +9,18 @@ class HotkeyManager {
     private var hotkeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
 
+    private struct Extra {
+        let ref: EventHotKeyRef
+        let handler: () -> Void
+    }
+    private var extras: [UInt32: Extra] = [:]
+
     private let keyCodeKey = "hotkeyKeyCode"
     private let modifiersKey = "hotkeyModifiers"
 
     static let defaultKeyCode: UInt32 = 49          // Space
     static let defaultModifiers: UInt32 = UInt32(optionKey)  // ⌥
+    private static let toggleHotkeyID: UInt32 = 1
 
     func start() {
         register(keyCode: savedKeyCode(), modifiers: savedModifiers())
@@ -24,7 +31,7 @@ class HotkeyManager {
         unregister()
         installEventHandlerIfNeeded()
 
-        var hotKeyID = EventHotKeyID(signature: 0x5A59444B, id: 1) // "ZYDK"
+        let hotKeyID = EventHotKeyID(signature: 0x5A59444B, id: HotkeyManager.toggleHotkeyID) // "ZYDK"
         RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotkeyRef)
 
         UserDefaults.standard.set(Int(keyCode), forKey: keyCodeKey)
@@ -37,6 +44,27 @@ class HotkeyManager {
         if let ref = hotkeyRef {
             UnregisterEventHotKey(ref)
             hotkeyRef = nil
+        }
+    }
+
+    /// Register an additional hotkey identified by `id` (must not be 1).
+    /// Re-registering the same id replaces the previous binding.
+    func registerExtra(id: UInt32, keyCode: UInt32, modifiers: UInt32, handler: @escaping () -> Void) {
+        precondition(id != HotkeyManager.toggleHotkeyID, "id 1 reserved for toggle")
+        unregisterExtra(id: id)
+        installEventHandlerIfNeeded()
+
+        var ref: EventHotKeyRef?
+        let hkID = EventHotKeyID(signature: 0x5A59444B, id: id)
+        RegisterEventHotKey(keyCode, modifiers, hkID, GetApplicationEventTarget(), 0, &ref)
+        if let ref = ref {
+            extras[id] = Extra(ref: ref, handler: handler)
+        }
+    }
+
+    func unregisterExtra(id: UInt32) {
+        if let extra = extras.removeValue(forKey: id) {
+            UnregisterEventHotKey(extra.ref)
         }
     }
 
@@ -77,10 +105,29 @@ class HotkeyManager {
 
         InstallEventHandler(
             GetApplicationEventTarget(),
-            { (_, _, userData) -> OSStatus in
-                guard let userData = userData else { return OSStatus(eventNotHandledErr) }
+            { (_, eventRef, userData) -> OSStatus in
+                guard let userData = userData, let eventRef = eventRef else {
+                    return OSStatus(eventNotHandledErr)
+                }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
-                DispatchQueue.main.async { manager.onTrigger?() }
+                var hkID = EventHotKeyID()
+                let status = GetEventParameter(
+                    eventRef,
+                    EventParamName(kEventParamDirectObject),
+                    EventParamType(typeEventHotKeyID),
+                    nil,
+                    MemoryLayout<EventHotKeyID>.size,
+                    nil,
+                    &hkID
+                )
+                guard status == noErr else { return OSStatus(eventNotHandledErr) }
+                DispatchQueue.main.async {
+                    if hkID.id == HotkeyManager.toggleHotkeyID {
+                        manager.onTrigger?()
+                    } else if let extra = manager.extras[hkID.id] {
+                        extra.handler()
+                    }
+                }
                 return noErr
             },
             1,
