@@ -21,6 +21,7 @@ final class NotchWindow {
 
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var screenObserver: NSObjectProtocol?
     private var pendingCollapse: DispatchWorkItem?
     /// Prevents sub-pixel wobble near the edge from toggling state.
     private let collapseMargin: CGFloat = 4
@@ -75,11 +76,42 @@ final class NotchWindow {
         zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
 
         installMouseMonitors()
+        installScreenObserver()
     }
 
     deinit {
         if let m = globalMonitor { NSEvent.removeMonitor(m) }
         if let m = localMonitor { NSEvent.removeMonitor(m) }
+        if let o = screenObserver { NotificationCenter.default.removeObserver(o) }
+    }
+
+    private func installScreenObserver() {
+        guard screenObserver == nil else { return }
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in self?.handleScreensChanged() }
+    }
+
+    /// Re-pick the notched screen, refresh cached geometry, and snap the
+    /// panel back into the correct spot for its current state. Without this,
+    /// AppKit can reposition the borderless panel after a display
+    /// connect/disconnect and the cached frames stay correct while the
+    /// window drifts visually.
+    private func handleScreensChanged() {
+        guard let screen = Self.notchedScreen() else { return }
+        screenFrame = screen.frame
+        notchH = max(screen.safeAreaInsets.top, 32)
+        notchW = Self.physicalNotchWidth(for: screen)
+
+        collapsedZone = collapsedFrame()
+        expandedHoverZone = expandedFrame()
+            .insetBy(dx: -collapseMargin, dy: -collapseMargin)
+        zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
+
+        let target = isExpanded ? expandedFrame() : collapsedFrame()
+        panel?.setFrame(target, display: true)
     }
 
     private func installMouseMonitors() {
