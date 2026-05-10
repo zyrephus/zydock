@@ -20,3 +20,6 @@ daemon/zydockd
 *.log
 
 Notes
+
+# Build artifacts (uploaded to GitHub Releases, not committed)
+dist/
