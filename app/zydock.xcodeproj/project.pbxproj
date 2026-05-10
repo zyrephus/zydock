@@ -29,6 +29,7 @@
 		7FDBB0B0814D76F268F9BF93 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E901B2CBF504D9FCB25E35 /* SettingsWindowController.swift */; };
 		8C8EBF3A5E6867201EAA5921 /* DaemonManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4807564E9A9A2EED0C50FD9F /* DaemonManager.swift */; };
 		90E82737FA86A5FE6C7AAFD4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44DE2943B39D363E007E1B38 /* Assets.xcassets */; };
+		9C9429D355883E9B1F88097D /* HookInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80D83C8C0E665F48CA12347 /* HookInstaller.swift */; };
 		A972657A6FB1FC724A16F563 /* NowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D5E5273F7397E40BE1820A /* NowPlayingManager.swift */; };
 		AD57E25BAA2D37D854B9E8C1 /* TabContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B19B9D105FDA667399BD91B /* TabContentView.swift */; };
 		B64E466FDFACBDA551E44AD8 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9285D50F59B0C02072B235BD /* AppIcon.icns */; };
@@ -84,6 +85,7 @@
 		DFEE1FE31D3B21CE0796DEFA /* NotchSettingsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsButton.swift; sourceTree = "<group>"; };
 		E03110D4F809BAEFBB9624C8 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
 		F71A135614030CEF84501A56 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F80D83C8C0E665F48CA12347 /* HookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookInstaller.swift; sourceTree = "<group>"; };
 		F87AFA2819772B059B3B46E2 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		FBD0F304995502DE96DBA794 /* ClaudeCodeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCodeController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -128,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				4807564E9A9A2EED0C50FD9F /* DaemonManager.swift */,
+				F80D83C8C0E665F48CA12347 /* HookInstaller.swift */,
 				4FB248C59177AA59CA00BF1A /* MetricsPoller.swift */,
 				BFDDD8F019336230817E6296 /* SessionState.swift */,
 				BE863084F10FB558DFA8EAFE /* WebSocketClient.swift */,
@@ -352,6 +355,7 @@
 				5A4C9B2BFC31713CEC9394AC /* ClaudeCodeModule.swift in Sources */,
 				E4123D46CB018B4411EEDC07 /* ClaudeCodeView.swift in Sources */,
 				8C8EBF3A5E6867201EAA5921 /* DaemonManager.swift in Sources */,
+				9C9429D355883E9B1F88097D /* HookInstaller.swift in Sources */,
 				EA958190D3FCBCB981A5DD4E /* HotkeyManager.swift in Sources */,
 				E8ED558EAFD45D86F08E7EA6 /* LoadersView.swift in Sources */,
 				F54B2607C8D2503FE5DBA7B8 /* MetricsPoller.swift in Sources */,
