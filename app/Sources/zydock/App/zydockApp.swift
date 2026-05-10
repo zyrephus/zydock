@@ -21,6 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // exist. The only hotkey is the user-configurable toggle.
         NSApp.mainMenu = NSMenu()
 
+        HookInstaller.installIfNeeded()
         DaemonManager.shared.start()
 
         notchWindow = NotchWindow()
