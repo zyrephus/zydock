@@ -67,19 +67,28 @@ class NowPlayingManager: ObservableObject {
 
     func togglePlayPause() {
         guard let source = activeSource else { return }
+        // No optimistic toggle: Music.app's playerInfo notification can briefly
+        // carry the pre-command state, causing a visible play/pause flicker if
+        // we flip locally first. The notification arrives quickly enough.
         sendCommand("playpause", to: source)
-        isPlaying.toggle()
-        updateProgressTimer()
     }
 
     func nextTrack() {
         guard let source = activeSource else { return }
         sendCommand("next track", to: source)
+        // Music.app's `next track` preserves paused state; force play so skip
+        // behaves like Spotify (load + play the next song).
+        if source == .music {
+            sendCommand("play", to: source)
+        }
     }
 
     func previousTrack() {
         guard let source = activeSource else { return }
         sendCommand("previous track", to: source)
+        if source == .music {
+            sendCommand("play", to: source)
+        }
     }
 
     /// Optimistic update while the user drags the scrubber; progress timer
@@ -342,61 +351,96 @@ class NowPlayingManager: ObservableObject {
 
     private func fetchArtworkViaAppleScript(source: Source) {
         let key = lastArtworkKey
-        let tempPath = NSTemporaryDirectory() + "zydock_art.dat"
+        let title = self.title
+        let artist = self.artist
+        let album = self.album
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let image: NSImage? = {
-                switch source {
-                case .music:
-                    let script = """
-                    tell application "Music"
-                        try
-                            set artData to raw data of artwork 1 of current track
-                            set tmpFile to POSIX file "\(tempPath)"
-                            try
-                                set f to open for access tmpFile with write permission
-                                set eof of f to 0
-                                write artData to f
-                                close access f
-                                return "\(tempPath)"
-                            on error
-                                try
-                                    close access tmpFile
-                                end try
-                                return ""
-                            end try
-                        on error
-                            return ""
-                        end try
-                    end tell
-                    """
-                    guard let path = Self.runAppleScript(script), !path.isEmpty,
-                          let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
-                        return nil
-                    }
-                    return NSImage(data: data)
-                case .spotify:
-                    let script = """
-                    tell application "Spotify"
-                        try
-                            return artwork url of current track
-                        on error
-                            return ""
-                        end try
-                    end tell
-                    """
-                    guard let urlString = Self.runAppleScript(script),
-                          !urlString.isEmpty,
-                          let url = URL(string: urlString),
-                          let data = try? Data(contentsOf: url) else {
-                        return nil
-                    }
-                    return NSImage(data: data)
-                }
-            }()
+            // Local library tracks expose artwork bytes via AppleScript. Apple
+            // Music streamed tracks return 0 artworks even when art is shown,
+            // so fall back to the iTunes Search API by title+artist.
+            let image = Self.loadArtwork(source: source)
+                ?? (source == .music ? Self.lookupITunesArtwork(title: title, artist: artist, album: album) : nil)
             DispatchQueue.main.async {
                 guard let self = self, self.lastArtworkKey == key else { return }
                 self.artwork = image
             }
+        }
+    }
+
+    private static func lookupITunesArtwork(title: String, artist: String, album: String) -> NSImage? {
+        guard !title.isEmpty else { return nil }
+        let term = "\(artist) \(title)".trimmingCharacters(in: .whitespaces)
+        guard let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://itunes.apple.com/search?term=\(encoded)&entity=song&limit=1") else {
+            return nil
+        }
+        guard let data = try? Data(contentsOf: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let results = json["results"] as? [[String: Any]],
+              let first = results.first,
+              let artURL = first["artworkUrl100"] as? String else {
+            return nil
+        }
+        // Bump to a higher resolution — the API returns 100x100 by default.
+        let hiRes = artURL.replacingOccurrences(of: "100x100bb", with: "600x600bb")
+        guard let imageURL = URL(string: hiRes),
+              let imageData = try? Data(contentsOf: imageURL) else {
+            return nil
+        }
+        return NSImage(data: imageData)
+    }
+
+    private static func loadArtwork(source: Source) -> NSImage? {
+        switch source {
+        case .music:
+            let tempPath = NSTemporaryDirectory() + "zydock_art_\(UUID().uuidString).dat"
+            let script = """
+            tell application "Music"
+                try
+                    set artData to raw data of artwork 1 of current track
+                    set tmpFile to POSIX file "\(tempPath)"
+                    try
+                        set f to open for access tmpFile with write permission
+                        set eof of f to 0
+                        write artData to f
+                        close access f
+                        return "\(tempPath)"
+                    on error
+                        try
+                            close access tmpFile
+                        end try
+                        return ""
+                    end try
+                on error
+                    return ""
+                end try
+            end tell
+            """
+            guard let path = runAppleScript(script), !path.isEmpty else { return nil }
+            defer { try? FileManager.default.removeItem(atPath: path) }
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  !data.isEmpty,
+                  let image = NSImage(data: data) else {
+                return nil
+            }
+            return image
+        case .spotify:
+            let script = """
+            tell application "Spotify"
+                try
+                    return artwork url of current track
+                on error
+                    return ""
+                end try
+            end tell
+            """
+            guard let urlString = runAppleScript(script),
+                  !urlString.isEmpty,
+                  let url = URL(string: urlString),
+                  let data = try? Data(contentsOf: url) else {
+                return nil
+            }
+            return NSImage(data: data)
         }
     }
 }
