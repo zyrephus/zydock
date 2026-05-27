@@ -33,7 +33,7 @@ struct ClaudeCodeView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Layout.horizontalPadding)
-        .padding(.top, 8)
+        .padding(.top, 2)
         .padding(.bottom, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(.easeInOut(duration: 0.25), value: sessionState.activeSessions.map(\.id))

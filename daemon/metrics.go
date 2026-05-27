@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -101,7 +102,15 @@ func collectCPU(ctx context.Context) (float64, []ProcessInfo, error) {
 }
 
 func collectTopCPU(ctx context.Context) ([]ProcessInfo, error) {
-	output, err := exec.CommandContext(ctx, "ps", "-arcwwwxo", "pid,comm,%cpu").Output()
+	return collectTopProcs(ctx, "-arwwwxo", "pid,%cpu,command", true)
+}
+
+func collectTopMem(ctx context.Context) ([]ProcessInfo, error) {
+	return collectTopProcs(ctx, "-amwwwxo", "pid,%mem,command", false)
+}
+
+func collectTopProcs(ctx context.Context, flags, cols string, isCPU bool) ([]ProcessInfo, error) {
+	output, err := exec.CommandContext(ctx, "ps", flags, cols).Output()
 	if err != nil {
 		return nil, fmt.Errorf("ps: %w", err)
 	}
@@ -121,12 +130,21 @@ func collectTopCPU(ctx context.Context) ([]ProcessInfo, error) {
 		if err != nil {
 			continue
 		}
-		cpuPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
+		pct, err := strconv.ParseFloat(fields[1], 64)
 		if err != nil {
 			continue
 		}
-		name := strings.Join(fields[1:len(fields)-1], " ")
-		procs = append(procs, ProcessInfo{PID: pid, Name: name, CPUPct: cpuPct})
+		name := procName(strings.Join(fields[2:], " "))
+		if name == "" {
+			continue
+		}
+		p := ProcessInfo{PID: pid, Name: name}
+		if isCPU {
+			p.CPUPct = pct
+		} else {
+			p.MemPct = pct
+		}
+		procs = append(procs, p)
 		if len(procs) >= 5 {
 			break
 		}
@@ -134,38 +152,13 @@ func collectTopCPU(ctx context.Context) ([]ProcessInfo, error) {
 	return procs, nil
 }
 
-func collectTopMem(ctx context.Context) ([]ProcessInfo, error) {
-	output, err := exec.CommandContext(ctx, "ps", "-amcwwwxo", "pid,comm,%mem").Output()
-	if err != nil {
-		return nil, fmt.Errorf("ps: %w", err)
+// procName extracts a readable executable name from a full ps `command` field.
+// Strips arguments (everything after the first " -") and returns the basename.
+func procName(command string) string {
+	if idx := strings.Index(command, " -"); idx >= 0 {
+		command = command[:idx]
 	}
-
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	if len(lines) < 2 {
-		return nil, fmt.Errorf("no process output")
-	}
-
-	var procs []ProcessInfo
-	for _, line := range lines[1:] { // skip header
-		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) < 3 {
-			continue
-		}
-		pid, err := strconv.Atoi(fields[0])
-		if err != nil {
-			continue
-		}
-		memPct, err := strconv.ParseFloat(fields[len(fields)-1], 64)
-		if err != nil {
-			continue
-		}
-		name := strings.Join(fields[1:len(fields)-1], " ")
-		procs = append(procs, ProcessInfo{PID: pid, Name: name, MemPct: memPct})
-		if len(procs) >= 5 {
-			break
-		}
-	}
-	return procs, nil
+	return filepath.Base(strings.TrimSpace(command))
 }
 
 func parseCPU(output string) (float64, error) {

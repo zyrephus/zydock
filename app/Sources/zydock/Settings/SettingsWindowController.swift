@@ -19,6 +19,7 @@ final class SettingsWindowController {
         window.title = "zydock Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 420, height: 360))
         window.center()
         window.makeKeyAndOrderFront(nil)
         self.window = window

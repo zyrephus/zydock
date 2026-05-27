@@ -2,8 +2,6 @@ import SwiftUI
 
 struct SystemView: View {
     @ObservedObject var metrics: MetricsPoller
-    @State private var cpuExpanded = false
-    @State private var ramExpanded = false
 
     var body: some View {
         GeometryReader { geo in
@@ -17,10 +15,10 @@ struct SystemView: View {
                     label: "CPU",
                     valueText: m.map { String(format: "%.0f%%", $0.cpuUsage) } ?? "–",
                     fraction: m.map { $0.cpuUsage / 100.0 } ?? 0,
-                    isExpanded: $cpuExpanded,
                     procs: Array((m?.topCPU ?? []).prefix(5)),
                     procValue: { $0.cpuPct }
                 )
+                .padding(.trailing, 10)
                 .frame(width: available / 2)
 
                 Rectangle()
@@ -32,14 +30,14 @@ struct SystemView: View {
                     label: "RAM",
                     valueText: ramText,
                     fraction: ramFraction,
-                    isExpanded: $ramExpanded,
                     procs: Array((m?.topMem ?? []).prefix(5)),
                     procValue: { $0.memPct }
                 )
+                .padding(.leading, 10)
                 .frame(width: available / 2)
             }
             .padding(.horizontal, Layout.horizontalPadding)
-            .padding(.top, 8)
+            .padding(.top, 2)
             .padding(.bottom, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
@@ -49,78 +47,52 @@ struct SystemView: View {
         label: String,
         valueText: String,
         fraction: Double,
-        isExpanded: Binding<Bool>,
         procs: [ProcessInfo],
         procValue: @escaping (ProcessInfo) -> Double
     ) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 8) {
-                metricRow(
-                    label: label,
-                    valueText: valueText,
-                    fraction: fraction,
-                    isExpanded: isExpanded
-                )
-                if isExpanded.wrappedValue {
-                    processRows(procs: procs, value: procValue)
-                }
-            }
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+        VStack(alignment: .leading, spacing: 8) {
+            metricRow(label: label, valueText: valueText, fraction: fraction)
+            processRows(procs: procs, value: procValue)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func metricRow(
         label: String,
         valueText: String,
-        fraction: Double,
-        isExpanded: Binding<Bool>
+        fraction: Double
     ) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
-                isExpanded.wrappedValue.toggle()
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: Typography.primary, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+                Spacer()
+                Text(valueText)
+                    .font(.system(size: Typography.primary, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.85))
             }
-        } label: {
-            VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    Text(label)
-                        .font(.system(size: Typography.primary, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
-                    Spacer()
-                    Text(valueText)
-                        .font(.system(size: Typography.primary, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.85))
-                    Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.45))
-                        .frame(width: 16, height: 16)
-                }
-                MetricBar(value: fraction)
-                    .frame(height: 4)
-            }
-            .contentShape(Rectangle())
+            MetricBar(value: fraction)
+                .frame(height: 4)
         }
-        .buttonStyle(NotchPressStyle())
     }
 
     private func processRows(procs: [ProcessInfo], value: @escaping (ProcessInfo) -> Double) -> some View {
         VStack(spacing: 2) {
             ForEach(procs) { proc in
-                HStack {
+                HStack(spacing: 6) {
                     Text(proc.name)
                         .font(.system(size: Typography.secondary))
                         .foregroundStyle(.white.opacity(0.6))
                         .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
+                        .truncationMode(.tail)
+                    Spacer(minLength: 4)
                     Text(String(format: "%.1f%%", value(proc)))
                         .font(.system(size: Typography.secondary, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.45))
                 }
-                .padding(.leading, 6)
             }
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 }
 
