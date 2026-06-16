@@ -41,6 +41,12 @@ HOOKS=$(cat <<EOF
     "PostToolUse": [
       {"hooks": [{"type": "http", "url": "$DAEMON_URL", "timeout": 5}]}
     ],
+    "PostToolUseFailure": [
+      {"hooks": [{"type": "http", "url": "$DAEMON_URL", "timeout": 5}]}
+    ],
+    "PermissionDenied": [
+      {"hooks": [{"type": "http", "url": "$DAEMON_URL", "timeout": 5}]}
+    ],
     "Notification": [
       {
         "matcher": "permission_prompt",

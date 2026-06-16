@@ -90,6 +90,15 @@ func (sm *StateManager) HandleEvent(event HookEvent) {
 		// Tool finished, but Claude is still processing (may call more tools)
 		newState = StateThinking
 
+	case "PostToolUseFailure":
+		// PostToolUse only fires on success — without this, a failing tool
+		// leaves the session stuck in tool_active/waiting_permission.
+		newState = StateThinking
+
+	case "PermissionDenied":
+		// Denied prompt: Claude continues processing the denial.
+		newState = StateThinking
+
 	case "Notification":
 		if event.NotificationType == "permission_prompt" {
 			newState = StateWaitingPermission

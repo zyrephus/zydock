@@ -40,7 +40,8 @@ enum HookInstaller {
 
     private static let eventNames = [
         "SessionStart", "SessionEnd", "UserPromptSubmit",
-        "PreToolUse", "PostToolUse", "Stop",
+        "PreToolUse", "PostToolUse", "PostToolUseFailure",
+        "PermissionDenied", "Stop",
     ]
 
     private static func httpHook() -> [String: Any] {
