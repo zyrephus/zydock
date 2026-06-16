@@ -7,33 +7,81 @@ struct TrayView: View {
     @State private var copiedItemID: UUID?
     @State private var hoveredItemID: UUID?
     @State private var isDropTargeted = false
+    @State private var section: TraySection = .files
+    @Namespace private var pillNS
+
+    private enum TraySection {
+        case files, clipboard
+    }
 
     private let gridColumns = [
-        GridItem(.flexible(), spacing: 6),
-        GridItem(.flexible(), spacing: 6),
-        GridItem(.flexible(), spacing: 6)
+        GridItem(.adaptive(minimum: 80, maximum: 120), spacing: 8)
     ]
 
     var body: some View {
-        GeometryReader { geo in
-            let available = geo.size.width - Layout.horizontalPadding * 2 - 1
-            HStack(spacing: 0) {
-                traySection
-                    .frame(width: available * 3 / 5)
-                Rectangle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 1)
-                    .padding(.vertical, 6)
-                clipboardSection
-                    .frame(width: available * 2 / 5)
-                    .padding(.leading, 10)
-                    .padding(.trailing, 4)
+        VStack(spacing: 10) {
+            HStack {
+                sectionToggle
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, Layout.horizontalPadding)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            ZStack {
+                switch section {
+                case .files:
+                    traySection
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                case .clipboard:
+                    clipboardSection
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                }
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: section)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .padding(.top, 6)
+        .padding(.bottom, Layout.contentPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onDrop(of: [.fileURL, .image], isTargeted: $isDropTargeted) { providers in
+            trayManager.ingestDrop(providers)
+        }
+        .onChange(of: isDropTargeted) { targeted in
+            if targeted { section = .files }
+        }
+    }
+
+    // MARK: - Section toggle
+
+    private var sectionToggle: some View {
+        HStack(spacing: 2) {
+            toggleButton("Files", .files)
+            toggleButton("Clipboard", .clipboard)
+        }
+        .padding(2)
+        .background(Capsule().fill(Color.white.opacity(0.08)))
+    }
+
+    private func toggleButton(_ title: String, _ value: TraySection) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+                section = value
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: Typography.secondary, weight: .medium))
+                .foregroundStyle(.white.opacity(section == value ? 0.95 : 0.5))
+                .animation(.easeInOut(duration: 0.2), value: section == value)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background {
+                    if section == value {
+                        Capsule()
+                            .fill(Color.white.opacity(0.15))
+                            .matchedGeometryEffect(id: "pill", in: pillNS)
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Tray
@@ -44,7 +92,7 @@ struct TrayView: View {
                 if trayManager.screenshotAccess == .denied {
                     deniedAccessView
                 } else {
-                    emptyState(icon: "tray")
+                    emptyState(icon: "tray", label: "Drop files here")
                 }
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
@@ -74,9 +122,6 @@ struct TrayView: View {
                 )
                 .animation(.easeInOut(duration: 0.12), value: isDropTargeted)
         )
-        .onDrop(of: [.fileURL, .image], isTargeted: $isDropTargeted) { providers in
-            trayManager.ingestDrop(providers)
-        }
     }
 
     private func trayCell(_ item: TrayItem) -> some View {
@@ -137,7 +182,7 @@ struct TrayView: View {
         }
     }
 
-    private var thumbSize: CGFloat { 44 }
+    private var thumbSize: CGFloat { 60 }
 
     @ViewBuilder
     private func cellThumbnail(for item: TrayItem) -> some View {
@@ -173,7 +218,7 @@ struct TrayView: View {
     private var clipboardSection: some View {
         Group {
             if trayManager.clipboardItems.isEmpty {
-                emptyState(icon: "doc.on.clipboard")
+                emptyState(icon: "doc.on.clipboard", label: "Copied items appear here")
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 2) {
@@ -265,11 +310,16 @@ struct TrayView: View {
 
     // MARK: - Shared
 
-    private func emptyState(icon: String) -> some View {
-        Image(systemName: icon)
-            .font(.system(size: 18))
-            .foregroundStyle(.white.opacity(0.18))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    private func emptyState(icon: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(.white.opacity(0.18))
+            Text(label)
+                .font(.system(size: Typography.secondary))
+                .foregroundStyle(.white.opacity(0.25))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var deniedAccessView: some View {
