@@ -20,3 +20,35 @@ enum Layout {
     /// Small inward nudge applied to ear components so they don't sit too far outward.
     static let earInwardNudge: CGFloat = 1
 }
+
+// MARK: - Staggered pop-in
+
+extension View {
+    /// Bouncy, staggered entrance keyed on `visible`. Each sibling gets a
+    /// different `order` so they spring in one after another rather than all
+    /// fading together. Collapse is a quick fade with no bounce so content
+    /// clears before the notch shape shrinks over it.
+    func popIn(_ visible: Bool, order: Int = 0) -> some View {
+        modifier(PopIn(visible: visible, order: order))
+    }
+}
+
+private struct PopIn: ViewModifier {
+    let visible: Bool
+    let order: Int
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(visible ? 1 : 0.5, anchor: .center)
+            .opacity(visible ? 1 : 0)
+            .blur(radius: visible ? 0 : 12)
+            .animation(animation, value: visible)
+    }
+
+    private var animation: Animation {
+        visible
+            ? .spring(response: 0.36, dampingFraction: 0.56)
+                .delay(0.05 + Double(order) * 0.045)
+            : .easeIn(duration: 0.12)
+    }
+}

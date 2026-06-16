@@ -3,6 +3,7 @@ import SwiftUI
 struct NotchTabBar: View {
     @Binding var selected: String
     var itemSize: CGFloat
+    var appear: Bool = true
     @ObservedObject var registry: ModuleRegistry = .shared
 
     private let spacing: CGFloat = 4
@@ -13,8 +14,9 @@ struct NotchTabBar: View {
 
     var body: some View {
         HStack(spacing: spacing) {
-            ForEach(tabs, id: \.id) { t in
+            ForEach(Array(tabs.enumerated()), id: \.element.id) { idx, t in
                 tab(id: t.id, icon: t.icon)
+                    .popIn(appear, order: idx)
             }
         }
     }

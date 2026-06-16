@@ -4,6 +4,8 @@ struct NotchView: View {
     var notchHeight: CGFloat
     var notchWidth: CGFloat
     var earWidth: CGFloat
+    var expandedWidth: CGFloat
+    var expandedHeight: CGFloat
     @ObservedObject var state: NotchState
 
     @StateObject private var nowPlaying = NowPlayingManager()
@@ -33,17 +35,45 @@ struct NotchView: View {
     private var ccEnabled: Bool { registry.isEnabled("claudeCode") }
     private var trayEnabled: Bool { registry.isEnabled("tray") }
 
+    private var collapsedWidth: CGFloat { notchWidth + earWidth * 2 }
+    private var shapeWidth: CGFloat { state.isExpanded ? expandedWidth : collapsedWidth }
+    private var shapeHeight: CGFloat { state.isExpanded ? notchHeight + expandedHeight : notchHeight }
+
+    /// The shape leads the whole sequence with a deliberate spring; a touch
+    /// stiffer on the way out so the notch settles shut. Once it's open, the
+    /// individual components spring in (see popIn).
+    private var shapeAnimation: Animation {
+        state.isExpanded
+            ? .spring(response: 0.36, dampingFraction: 0.84)
+            : .spring(response: 0.42, dampingFraction: 0.92)
+    }
+
+    /// Inverse of the content fades — ears vanish immediately on expand and
+    /// fade back in (in place — see earsLayer's fixed width) as the shape
+    /// finishes closing over them.
+    private var earsFade: Animation {
+        state.isExpanded
+            ? .easeIn(duration: 0.1)
+            : .easeOut(duration: 0.2).delay(0.26)
+    }
+
     var body: some View {
         NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
             .fill(Color.black)
             .overlay(alignment: .top) {
                 earsLayer
                     .opacity(state.isExpanded ? 0 : 1)
+                    .animation(earsFade, value: state.isExpanded)
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .top) {
+                // Laid out at the final expanded width so it never reflows with
+                // the animating shape; the opening edge reveals it via the clip
+                // while each item springs in individually (see expandedTopBar).
                 expandedTopBar
-                    .opacity(state.isExpanded ? 1 : 0)
+                    .frame(width: expandedWidth, height: notchHeight)
+                    .frame(width: shapeWidth, height: notchHeight)
+                    .clipped()
                     .allowsHitTesting(state.isExpanded)
             }
             .overlay(alignment: .top) {
@@ -56,11 +86,18 @@ struct NotchView: View {
                     sessionState: ccController.sessionState,
                     trayManager: trayController.trayManager
                 )
+                    // Fixed content area, so the album art etc. are at their
+                    // final size/position immediately and don't grow outward.
+                    // Individual components spring in via popIn inside the views.
+                    .frame(width: expandedWidth, height: expandedHeight)
                     .padding(.top, notchHeight)
-                    .opacity(state.isExpanded ? 1 : 0)
-                    .allowsHitTesting(state.isExpanded)
+                    .frame(width: shapeWidth, height: shapeHeight, alignment: .top)
                     .clipShape(NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius))
+                    .allowsHitTesting(state.isExpanded)
             }
+            .frame(width: shapeWidth, height: shapeHeight)
+            .animation(shapeAnimation, value: state.isExpanded)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .onAppear {
                 metrics.start()
                 calendar.start()
@@ -101,7 +138,9 @@ struct NotchView: View {
                 .frame(width: rightEarSize, height: rightEarSize)
                 .padding(.trailing, waveTrailingPad)
         }
-        .frame(height: notchHeight)
+        // Pin to the collapsed width so the ears stay at their final position
+        // while the shape is still shrinking — they fade in place, not slide in.
+        .frame(width: collapsedWidth, height: notchHeight)
     }
 
     @ViewBuilder
@@ -120,7 +159,7 @@ struct NotchView: View {
 
     private var expandedTopBar: some View {
         HStack(spacing: 0) {
-            NotchTabBar(selected: $state.selectedTabID, itemSize: artSize)
+            NotchTabBar(selected: $state.selectedTabID, itemSize: artSize, appear: state.isExpanded)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, Layout.horizontalPadding)
 
@@ -133,11 +172,15 @@ struct NotchView: View {
                    let topSession = sessionState.activeSessions.max(by: { $0.state.attentionPriority < $1.state.attentionPriority }) {
                     SessionLoaderView(state: topSession.state)
                         .frame(width: rightEarSize, height: rightEarSize)
+                        .popIn(state.isExpanded, order: 0)
                 }
                 MusicWaveView(isPlaying: nowPlaying.isPlaying)
                     .frame(width: waveWidth, height: waveHeight)
+                    .popIn(state.isExpanded, order: 1)
                 WeatherBadge(weather: weather)
+                    .popIn(state.isExpanded, order: 2)
                 NotchSettingsButton(size: artSize)
+                    .popIn(state.isExpanded, order: 3)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, Layout.horizontalPadding)

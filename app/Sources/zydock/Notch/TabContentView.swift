@@ -18,6 +18,7 @@ struct TabContentView: View {
             case "claudeCode":
                 if let sessionState {
                     ClaudeCodeView(sessionState: sessionState)
+                        .popIn(isExpanded)
                         .transition(transition)
                 } else {
                     HomeView(nowPlaying: nowPlaying, metrics: metrics, calendar: calendar, isExpanded: isExpanded)
@@ -26,6 +27,7 @@ struct TabContentView: View {
             case "tray":
                 if let trayManager {
                     TrayView(trayManager: trayManager)
+                        .popIn(isExpanded)
                         .transition(transition)
                 } else {
                     HomeView(nowPlaying: nowPlaying, metrics: metrics, calendar: calendar, isExpanded: isExpanded)
@@ -33,6 +35,7 @@ struct TabContentView: View {
                 }
             case "system":
                 SystemView(metrics: metrics)
+                    .popIn(isExpanded)
                     .transition(transition)
             default:
                 HomeView(nowPlaying: nowPlaying, metrics: metrics, calendar: calendar, isExpanded: isExpanded)
@@ -59,16 +62,18 @@ struct HomeView: View {
         GeometryReader { geo in
             let available = geo.size.width - Layout.horizontalPadding * 2 - 1
             HStack(spacing: 0) {
-                MusicSection(nowPlaying: nowPlaying)
+                MusicSection(nowPlaying: nowPlaying, isExpanded: isExpanded)
                     .frame(width: available * 3 / 5)
                 Rectangle()
                     .fill(Color.white.opacity(0.1))
                     .frame(width: 1)
                     .padding(.vertical, 6)
+                    .popIn(isExpanded, order: 2)
                 CalendarSection(calendar: calendar, isExpanded: isExpanded)
                     .frame(width: available * 2 / 5)
                     .padding(.leading, 10)
                     .padding(.trailing, 4)
+                    .popIn(isExpanded, order: 3)
             }
             .padding(.horizontal, Layout.horizontalPadding)
             .padding(.top, 8)
@@ -82,6 +87,7 @@ struct HomeView: View {
 
 private struct MusicSection: View {
     @ObservedObject var nowPlaying: NowPlayingManager
+    var isExpanded: Bool
 
     var body: some View {
         GeometryReader { geo in
@@ -100,6 +106,7 @@ private struct MusicSection: View {
                 }
                 .buttonStyle(NotchPressStyle())
                 .disabled(!nowPlaying.hasMedia)
+                .popIn(isExpanded, order: 0)
 
                 VStack(alignment: .leading, spacing: 4) {
                     titleBlock
@@ -110,6 +117,7 @@ private struct MusicSection: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .popIn(isExpanded, order: 1)
             }
         }
         .padding(.trailing, 10)

@@ -24,6 +24,7 @@ final class NotchWindow {
     private var localMonitor: Any?
     private var screenObserver: NSObjectProtocol?
     private var pendingCollapse: DispatchWorkItem?
+    private var pendingFrameShrink: DispatchWorkItem?
     /// Prevents sub-pixel wobble near the edge from toggling state.
     private let collapseMargin: CGFloat = 4
     private let collapseDelay: TimeInterval = 0.12
@@ -48,6 +49,8 @@ final class NotchWindow {
             notchHeight: notchH,
             notchWidth: notchW,
             earWidth: earExtension,
+            expandedWidth: expandedW,
+            expandedHeight: expandedH,
             state: state
         )
         let host = NSHostingView(rootView: view)
@@ -201,11 +204,18 @@ final class NotchWindow {
         )
     }
 
+    // Animating the NSPanel frame re-layouts the hosting view every frame and
+    // stutters. Instead the panel snaps to the expanded rect instantly (the
+    // extra area is transparent, so nothing changes visually) and SwiftUI
+    // animates the notch shape inside it. On collapse, the frame shrinks back
+    // only after the shape animation has finished.
     private func expand() {
         guard !isExpanded else { return }
         isExpanded = true
-        withAnimation(.easeInOut(duration: 0.22)) { state.isExpanded = true }
-        animate(to: expandedFrame(), duration: 0.22)
+        pendingFrameShrink?.cancel()
+        pendingFrameShrink = nil
+        panel?.setFrame(expandedFrame(), display: true)
+        state.isExpanded = true
         registerTabHotkeys()
     }
 
@@ -213,9 +223,22 @@ final class NotchWindow {
         guard isExpanded else { return }
         if pinned { return }
         isExpanded = false
-        withAnimation(.easeInOut(duration: 0.28)) { state.isExpanded = false }
-        animate(to: collapsedFrame(), duration: 0.28)
+        state.isExpanded = false
         unregisterTabHotkeys()
+        scheduleFrameShrink()
+    }
+
+    /// Shrink the window back once the close animation has finished.
+    private func scheduleFrameShrink() {
+        pendingFrameShrink?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingFrameShrink = nil
+            guard !self.isExpanded else { return }
+            self.panel?.setFrame(self.collapsedFrame(), display: true)
+        }
+        pendingFrameShrink = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
     }
 
     // MARK: - Tab cycling hotkeys (only registered while expanded)
@@ -261,14 +284,6 @@ final class NotchWindow {
             if !isExpanded { expand() }
         } else {
             collapse()
-        }
-    }
-
-    private func animate(to frame: NSRect, duration: CFTimeInterval) {
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = duration
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel?.animator().setFrame(frame, display: true)
         }
     }
 
