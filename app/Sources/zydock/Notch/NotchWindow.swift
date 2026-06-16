@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import Combine
 import SwiftUI
 
 final class NotchWindow {
@@ -25,6 +26,7 @@ final class NotchWindow {
     private var screenObserver: NSObjectProtocol?
     private var pendingCollapse: DispatchWorkItem?
     private var pendingFrameShrink: DispatchWorkItem?
+    private var cancellables = Set<AnyCancellable>()
     /// Prevents sub-pixel wobble near the edge from toggling state.
     private let collapseMargin: CGFloat = 4
     private let collapseDelay: TimeInterval = 0.12
@@ -81,6 +83,11 @@ final class NotchWindow {
 
         installMouseMonitors()
         installScreenObserver()
+
+        state.$peek
+            .removeDuplicates()
+            .sink { [weak self] peek in self?.handlePeekChange(peek) }
+            .store(in: &cancellables)
     }
 
     deinit {
@@ -114,7 +121,14 @@ final class NotchWindow {
             .insetBy(dx: -collapseMargin, dy: -collapseMargin)
         zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
 
-        let target = isExpanded ? expandedFrame() : collapsedFrame()
+        let target: NSRect
+        if isExpanded {
+            target = expandedFrame()
+        } else if state.peek != nil {
+            target = peekFrame()
+        } else {
+            target = collapsedFrame()
+        }
         panel?.setFrame(target, display: true)
     }
 
@@ -151,7 +165,8 @@ final class NotchWindow {
             } else {
                 scheduleCollapse()
             }
-        } else if collapsedZone.contains(loc) {
+        } else if collapsedZone.contains(loc)
+                    || (state.peek != nil && peekFrame().contains(loc)) {
             // If the user is dragging (any mouse button held) into the notch
             // AND the Tray module is enabled, force the Tray tab so they
             // have a drop target. Without the registry check the persisted
@@ -204,6 +219,29 @@ final class NotchWindow {
         )
     }
 
+    private func peekFrame() -> NSRect {
+        let w = notchW + earExtension * 2
+        return NSRect(
+            x: screenFrame.midX - w / 2,
+            y: screenFrame.maxY - notchH - Layout.peekHeight,
+            width: w,
+            height: notchH + Layout.peekHeight
+        )
+    }
+
+    /// Grow the window for the peek sliver (instant — the extra area is
+    /// transparent until SwiftUI animates the shape into it).
+    private func handlePeekChange(_ peek: PeekKind?) {
+        guard !isExpanded else { return }
+        if peek != nil {
+            pendingFrameShrink?.cancel()
+            pendingFrameShrink = nil
+            panel?.setFrame(peekFrame(), display: true)
+        } else {
+            scheduleFrameShrink()
+        }
+    }
+
     // Animating the NSPanel frame re-layouts the hosting view every frame and
     // stutters. Instead the panel snaps to the expanded rect instantly (the
     // extra area is transparent, so nothing changes visually) and SwiftUI
@@ -215,6 +253,7 @@ final class NotchWindow {
         pendingFrameShrink?.cancel()
         pendingFrameShrink = nil
         panel?.setFrame(expandedFrame(), display: true)
+        state.peek = nil
         state.isExpanded = true
         registerTabHotkeys()
     }
@@ -234,7 +273,7 @@ final class NotchWindow {
         let item = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
             self.pendingFrameShrink = nil
-            guard !self.isExpanded else { return }
+            guard !self.isExpanded, self.state.peek == nil else { return }
             self.panel?.setFrame(self.collapsedFrame(), display: true)
         }
         pendingFrameShrink = item

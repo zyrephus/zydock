@@ -35,9 +35,18 @@ struct NotchView: View {
     private var ccEnabled: Bool { registry.isEnabled("claudeCode") }
     private var trayEnabled: Bool { registry.isEnabled("tray") }
 
+    @State private var peekDismiss: DispatchWorkItem?
+    /// Suppresses peeks briefly after launch so seeding the now-playing
+    /// state doesn't fire a phantom track-change peek.
+    @State private var peeksEnabledAfter = Date.distantFuture
+
     private var collapsedWidth: CGFloat { notchWidth + earWidth * 2 }
+    private var isPeeking: Bool { state.peek != nil && !state.isExpanded }
     private var shapeWidth: CGFloat { state.isExpanded ? expandedWidth : collapsedWidth }
-    private var shapeHeight: CGFloat { state.isExpanded ? notchHeight + expandedHeight : notchHeight }
+    private var shapeHeight: CGFloat {
+        if state.isExpanded { return notchHeight + expandedHeight }
+        return isPeeking ? notchHeight + Layout.peekHeight : notchHeight
+    }
 
     /// The shape leads the whole sequence with a deliberate spring; a touch
     /// stiffer on the way out so the notch settles shut. Once it's open, the
@@ -95,14 +104,36 @@ struct NotchView: View {
                     .clipShape(NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius))
                     .allowsHitTesting(state.isExpanded)
             }
+            .overlay(alignment: .top) {
+                ZStack {
+                    if isPeeking {
+                        peekView
+                            .transition(.opacity)
+                    }
+                }
+                .frame(height: Layout.peekHeight)
+                .padding(.top, notchHeight)
+                .animation(peekFade, value: isPeeking)
+                .allowsHitTesting(false)
+            }
             .frame(width: shapeWidth, height: shapeHeight)
             .animation(shapeAnimation, value: state.isExpanded)
+            .animation(.spring(response: 0.38, dampingFraction: 0.78), value: isPeeking)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .onChange(of: nowPlaying.title) { newTitle in
+                guard !newTitle.isEmpty, nowPlaying.isPlaying else { return }
+                showPeek(.nowPlaying)
+            }
+            .onChange(of: nowPlaying.isPlaying) { playing in
+                guard playing, nowPlaying.hasMedia else { return }
+                showPeek(.nowPlaying)
+            }
             .onAppear {
                 metrics.start()
                 calendar.start()
                 weather.start()
                 syncModuleRuntimes()
+                peeksEnabledAfter = Date().addingTimeInterval(1.5)
             }
             .onChange(of: registry.enabledIDs) { _ in
                 syncModuleRuntimes()
@@ -113,6 +144,40 @@ struct NotchView: View {
                     state.selectedTabID = "home"
                 }
             }
+    }
+
+    // MARK: - Peek
+
+    private var peekFade: Animation {
+        isPeeking
+            ? .easeOut(duration: 0.18).delay(0.1)
+            : .easeIn(duration: 0.1)
+    }
+
+    private func showPeek(_ kind: PeekKind) {
+        guard !state.isExpanded, Date() >= peeksEnabledAfter else { return }
+        state.peek = kind
+        peekDismiss?.cancel()
+        let item = DispatchWorkItem { [state] in
+            if state.peek == kind { state.peek = nil }
+        }
+        peekDismiss = item
+        // Long enough for the marquee's delayed scroll to finish.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: item)
+    }
+
+    @ViewBuilder
+    private var peekView: some View {
+        PeekNowPlaying(text: nowPlayingPeekText)
+            // Reset alignment/scroll when the track changes mid-peek.
+            .id(nowPlayingPeekText)
+            .padding(.horizontal, Layout.shapeInset + 10)
+    }
+
+    private var nowPlayingPeekText: String {
+        nowPlaying.artist.isEmpty
+            ? nowPlaying.title
+            : "\(nowPlaying.title) — \(nowPlaying.artist)"
     }
 
     private var resolvedSelectedTabID: String {
@@ -186,5 +251,94 @@ struct NotchView: View {
             .padding(.trailing, Layout.horizontalPadding)
         }
         .frame(height: notchHeight)
+    }
+}
+
+// MARK: - Peek marquee
+
+/// Now-playing peek content: music-note icon + track text. If the icon and text
+/// fit within the available width, the pair is centered. If they overflow, the
+/// icon pins to the leading edge and the text "blurs out" into the background at
+/// the right, then slowly scrolls left until its end lands at the same trailing
+/// padding as the leading icon padding, dissolving the fade as it arrives.
+private struct PeekNowPlaying: View {
+    let text: String
+
+    @State private var textWidth: CGFloat = 0
+    @State private var iconWidth: CGFloat = 0
+    @State private var offset: CGFloat = 0
+    @State private var fadeOpacity: Double = 0
+    @State private var started = false
+
+    private let spacing: CGFloat = 6
+    /// Width of the right-edge fade, in points.
+    private let fade: CGFloat = 26
+
+    var body: some View {
+        GeometryReader { geo in
+            let available = geo.size.width
+            let textSpace = max(0, available - iconWidth - spacing)
+            let overflow = max(0, textWidth - textSpace)
+            let overflowing = overflow > 0.5
+
+            HStack(spacing: spacing) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .background(measure { iconWidth = $0 })
+
+                textContent(textSpace: textSpace, height: geo.size.height, overflowing: overflowing)
+            }
+            .frame(width: available, alignment: overflowing ? .leading : .center)
+            .onChange(of: overflow) { startScroll(overflow: $0) }
+            .onAppear { startScroll(overflow: overflow) }
+        }
+        .frame(height: 16)
+    }
+
+    @ViewBuilder
+    private func textContent(textSpace: CGFloat, height: CGFloat, overflowing: Bool) -> some View {
+        let base = Text(text)
+            .font(.system(size: Typography.primary, weight: .medium))
+            .foregroundStyle(.white.opacity(0.9))
+            .lineLimit(1)
+            .fixedSize()
+            .background(measure { textWidth = $0 })
+
+        if overflowing {
+            base
+                .offset(x: offset)
+                .frame(width: textSpace, height: height, alignment: .leading)
+                .clipped()
+                .overlay(alignment: .trailing) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: fade)
+                        .opacity(fadeOpacity)
+                        .allowsHitTesting(false)
+                }
+        } else {
+            base
+        }
+    }
+
+    private func measure(_ assign: @escaping (CGFloat) -> Void) -> some View {
+        GeometryReader { g in
+            Color.clear
+                .onAppear { assign(g.size.width) }
+                .onChange(of: g.size.width) { assign($0) }
+        }
+    }
+
+    private func startScroll(overflow: CGFloat) {
+        guard !started, overflow > 0.5 else { return }
+        started = true
+        fadeOpacity = 1
+        // Hold so the start is readable, then scroll exactly the overflow so the
+        // end lands at matching trailing padding, dissolving the fade as it goes.
+        // Budgeted to finish within the 3s peek: 0.5s hold + 2.0s scroll.
+        withAnimation(.easeInOut(duration: 2.0).delay(0.5)) {
+            offset = -overflow
+            fadeOpacity = 0
+        }
     }
 }

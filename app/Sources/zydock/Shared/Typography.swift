@@ -19,6 +19,8 @@ enum Layout {
     static let horizontalPadding: CGFloat = shapeInset + contentPadding
     /// Small inward nudge applied to ear components so they don't sit too far outward.
     static let earInwardNudge: CGFloat = 1
+    /// Height of the transient peek sliver below the collapsed notch.
+    static let peekHeight: CGFloat = 30
 }
 
 // MARK: - Staggered pop-in
