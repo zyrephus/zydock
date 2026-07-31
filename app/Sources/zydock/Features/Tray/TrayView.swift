@@ -53,7 +53,7 @@ struct TrayView: View {
 
     private var sectionToggle: some View {
         HStack(spacing: 2) {
-            toggleButton("Files", .files)
+            toggleButton("Tray", .files)
             toggleButton("Clipboard", .clipboard)
         }
         .padding(2)
@@ -125,7 +125,8 @@ struct TrayView: View {
     }
 
     private func trayCell(_ item: TrayItem) -> some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .topLeading) {
+            ZStack(alignment: .topTrailing) {
             Button {
                 trayManager.copyToClipboard(item)
                 flashCopied(item.id)
@@ -173,6 +174,15 @@ struct TrayView: View {
                     hoveredItemID = nil
                 }
                 .offset(x: 4, y: -4)
+                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+            }
+            }
+
+            if item.isPinned || (hoveredItemID == item.id && copiedItemID != item.id) {
+                pinBadge(isPinned: item.isPinned) {
+                    trayManager.togglePin(item, inClipboard: false)
+                }
+                .offset(x: -4, y: -4)
                 .transition(.opacity.combined(with: .scale(scale: 0.7)))
             }
         }
@@ -273,6 +283,13 @@ struct TrayView: View {
             }
             .buttonStyle(NotchPressStyle())
 
+            if item.isPinned || (hoveredItemID == item.id && copiedItemID != item.id) {
+                pinBadge(isPinned: item.isPinned) {
+                    trayManager.togglePin(item, inClipboard: true)
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+            }
+
             if hoveredItemID == item.id && copiedItemID != item.id {
                 removeBadge {
                     trayManager.removeClipboardItem(item)
@@ -306,6 +323,24 @@ struct TrayView: View {
         }
         .buttonStyle(.plain)
         .help("Remove")
+    }
+
+    private func pinBadge(isPinned: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.75))
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(isPinned ? Color.yellow.opacity(0.95) : .white.opacity(0.9))
+            }
+            .frame(width: 14, height: 14)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(isPinned ? "Unpin" : "Pin")
     }
 
     // MARK: - Shared

@@ -16,6 +16,7 @@ final class TrayItem: Identifiable {
     var kind: TrayItemKind
     let thumbnail: NSImage?
     let rawData: Data?
+    var isPinned = false
 
     init(timestamp: Date, kind: TrayItemKind, thumbnail: NSImage?, rawData: Data?) {
         self.timestamp = timestamp
@@ -365,17 +366,41 @@ final class TrayManager: ObservableObject {
         }
         withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
             trayItems.insert(item, at: 0)
-            if trayItems.count > maxTrayItems {
-                trayItems.removeLast(trayItems.count - maxTrayItems)
-            }
+            evictUnpinned(&trayItems, max: maxTrayItems)
+            sortPinnedFirst(&trayItems)
         }
     }
 
     private func addClipboardItem(_ item: TrayItem) {
         withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
             clipboardItems.insert(item, at: 0)
-            if clipboardItems.count > maxClipboardItems {
-                clipboardItems.removeLast(clipboardItems.count - maxClipboardItems)
+            evictUnpinned(&clipboardItems, max: maxClipboardItems)
+            sortPinnedFirst(&clipboardItems)
+        }
+    }
+
+    /// Drop the oldest unpinned item(s) when over capacity. Pinned items are
+    /// never evicted, so the list can exceed `max` if it's all pins.
+    private func evictUnpinned(_ items: inout [TrayItem], max: Int) {
+        while items.count > max, let idx = items.lastIndex(where: { !$0.isPinned }) {
+            items.remove(at: idx)
+        }
+    }
+
+    /// Pinned items float to the top; within each group newest-first.
+    private func sortPinnedFirst(_ items: inout [TrayItem]) {
+        items.sort {
+            $0.isPinned != $1.isPinned ? $0.isPinned : $0.timestamp > $1.timestamp
+        }
+    }
+
+    func togglePin(_ item: TrayItem, inClipboard: Bool) {
+        item.isPinned.toggle()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            if inClipboard {
+                sortPinnedFirst(&clipboardItems)
+            } else {
+                sortPinnedFirst(&trayItems)
             }
         }
     }
