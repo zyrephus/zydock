@@ -46,6 +46,13 @@ final class ModuleRegistry: ObservableObject {
         all.filter { enabledIDs.contains($0.id) }
     }
 
+    /// Every tab currently reachable in the expanded notch, in bar order.
+    /// Home is always present; the rest come from the enabled modules.
+    var tabs: [TabInfo] {
+        [TabInfo(id: "home", title: "Home", icon: "house.fill")]
+            + enabled.map { TabInfo(id: $0.id, title: $0.title, icon: $0.icon) }
+    }
+
     private static func key(for id: String) -> String {
         "module.\(id).enabled"
     }

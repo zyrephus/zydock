@@ -157,7 +157,7 @@ struct TrayView: View {
                     .animation(.easeInOut(duration: 0.12), value: hoveredItemID)
 
                     Text(label(for: item))
-                        .font(.system(size: Typography.secondary, design: .monospaced))
+                        .font(.system(size: Typography.secondary))
                         .foregroundStyle(.white.opacity(0.75))
                         .lineLimit(1)
                         .truncationMode(.middle)

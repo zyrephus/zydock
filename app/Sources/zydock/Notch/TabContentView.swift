@@ -61,7 +61,8 @@ struct HomeView: View {
     var body: some View {
         GeometryReader { geo in
             let available = geo.size.width - Layout.horizontalPadding * 2 - 1
-            HStack(spacing: 0) {
+            let rowHeight = geo.size.height - 8 - 20
+            HStack(alignment: .top, spacing: 0) {
                 MusicSection(nowPlaying: nowPlaying, isExpanded: isExpanded)
                     .frame(width: available * 3 / 5)
                 Rectangle()
@@ -70,7 +71,9 @@ struct HomeView: View {
                     .padding(.vertical, 6)
                     .popIn(isExpanded, order: 2)
                 CalendarSection(calendar: calendar, isExpanded: isExpanded)
-                    .frame(width: available * 2 / 5)
+                    // Fixed height so a full event list can't stretch the row and
+                    // push the music controls down.
+                    .frame(width: available * 2 / 5, height: rowHeight, alignment: .top)
                     .padding(.leading, 10)
                     .padding(.trailing, 4)
                     .popIn(isExpanded, order: 3)

@@ -32,7 +32,7 @@ struct CalendarSection: View {
                 .frame(height: 14)
             eventRows
                 .frame(maxHeight: .infinity, alignment: .top)
-                .padding(.top, 6)
+                .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { resetToToday(animated: false) }
@@ -306,7 +306,7 @@ struct CalendarSection: View {
             }
             .frame(maxWidth: .infinity)
         } else {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 ForEach(events, id: \.eventIdentifier) { event in
                     eventRow(event)
                 }
@@ -319,7 +319,7 @@ struct CalendarSection: View {
             HStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(Color(nsColor: event.calendar?.color ?? .systemGray))
-                    .frame(width: 3, height: 14)
+                    .frame(width: 3, height: 12)
                 Text(timeText(for: event))
                     .font(.system(size: Typography.secondary))
                     .monospacedDigit()

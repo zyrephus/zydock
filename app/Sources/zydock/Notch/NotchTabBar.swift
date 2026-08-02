@@ -8,13 +8,9 @@ struct NotchTabBar: View {
 
     private let spacing: CGFloat = 4
 
-    private var tabs: [(id: String, icon: String)] {
-        [("home", "house.fill")] + registry.enabled.map { ($0.id, $0.icon) }
-    }
-
     var body: some View {
         HStack(spacing: spacing) {
-            ForEach(Array(tabs.enumerated()), id: \.element.id) { idx, t in
+            ForEach(Array(registry.tabs.enumerated()), id: \.element.id) { idx, t in
                 tab(id: t.id, icon: t.icon)
                     .popIn(appear, order: idx)
             }

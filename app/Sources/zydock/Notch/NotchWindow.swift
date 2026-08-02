@@ -167,6 +167,7 @@ final class NotchWindow {
             }
         } else if collapsedZone.contains(loc)
                     || (state.peek != nil && peekFrame().contains(loc)) {
+            expand()
             // If the user is dragging (any mouse button held) into the notch
             // AND the Tray module is enabled, force the Tray tab so they
             // have a drop target. Without the registry check the persisted
@@ -175,7 +176,6 @@ final class NotchWindow {
                ModuleRegistry.shared.isEnabled("tray") {
                 state.selectedTabID = "tray"
             }
-            expand()
         }
     }
 
@@ -250,6 +250,9 @@ final class NotchWindow {
     private func expand() {
         guard !isExpanded else { return }
         isExpanded = true
+        if let tab = DefaultTab.resolved() {
+            state.selectedTabID = tab
+        }
         pendingFrameShrink?.cancel()
         pendingFrameShrink = nil
         panel?.setFrame(expandedFrame(), display: true)
@@ -306,7 +309,7 @@ final class NotchWindow {
     }
 
     private func cycleTab(forward: Bool) {
-        let ids = ["home"] + ModuleRegistry.shared.enabled.map(\.id)
+        let ids = ModuleRegistry.shared.tabs.map(\.id)
         guard !ids.isEmpty else { return }
         let idx = ids.firstIndex(of: state.selectedTabID) ?? 0
         let next = forward

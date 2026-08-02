@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var shortcutDisplay: String = ""
     @ObservedObject private var registry: ModuleRegistry = .shared
     @AppStorage("weatherUnit") private var weatherUnit: String = TemperatureUnit.fahrenheit.rawValue
+    @AppStorage(DefaultTab.key) private var defaultTabID: String = ""
 
     var body: some View {
         Form {
@@ -57,6 +58,20 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 300)
+            }
+
+            Section("Expanded Notch") {
+                Picker("Open on:", selection: $defaultTabID) {
+                    Text("Last used").tag("")
+                    ForEach(registry.tabs) { tab in
+                        Text(tab.title).tag(tab.id)
+                    }
+                }
+                .frame(maxWidth: 300)
+
+                Text("Which tab the notch shows each time it expands.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Modules") {
