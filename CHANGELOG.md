@@ -5,6 +5,22 @@ All notable changes to zydock are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-02
+
+### Added
+- Settings: an "Open on" preference that picks which tab the notch shows each
+  time it expands. Defaults to the last used tab; the list is built from the
+  enabled modules, so it follows whatever is turned on.
+- Tray items can be pinned so they survive the trim that drops old entries.
+
+### Changed
+- Renamed the tray's Files sub-tab to Tray.
+- Tray file names use the app's standard font instead of a monospaced one.
+
+### Fixed
+- Home tab: a day with three calendar events no longer pushes the music
+  controls and progress bar down.
+
 ## [1.1.0] - 2026-06-16
 
 ### Added
