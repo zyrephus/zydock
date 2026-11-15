@@ -4,9 +4,10 @@ struct NotchView: View {
     var notchHeight: CGFloat
     var notchWidth: CGFloat
     var earWidth: CGFloat
-    var expandedWidth: CGFloat
-    var expandedHeight: CGFloat
     @ObservedObject var state: NotchState
+
+    private var expandedWidth: CGFloat { state.expandedSize.width }
+    private var expandedHeight: CGFloat { state.expandedSize.height }
 
     @StateObject private var nowPlaying = NowPlayingManager()
     @StateObject private var metrics = MetricsPoller()
@@ -40,7 +41,13 @@ struct NotchView: View {
     /// state doesn't fire a phantom track-change peek.
     @State private var peeksEnabledAfter = Date.distantFuture
 
-    private var collapsedWidth: CGFloat { notchWidth + earWidth * 2 }
+    @State private var skipBump: CGFloat = 0
+
+    @AppStorage("glassSheet") private var glassSheet = true
+    @AppStorage(GlassTint.key) private var glassTint = GlassTint.black.rawValue
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var collapsedWidth: CGFloat { notchWidth + earWidth * 2 + skipBump }
     private var isPeeking: Bool { state.peek != nil && !state.isExpanded }
     private var shapeWidth: CGFloat { state.isExpanded ? expandedWidth : collapsedWidth }
     private var shapeHeight: CGFloat {
@@ -67,8 +74,7 @@ struct NotchView: View {
     }
 
     var body: some View {
-        NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
-            .fill(Color.black)
+        notchBackground
             .overlay(alignment: .top) {
                 earsLayer
                     .opacity(state.isExpanded ? 0 : 1)
@@ -93,7 +99,8 @@ struct NotchView: View {
                     metrics: metrics,
                     calendar: calendar,
                     sessionState: ccController.sessionState,
-                    trayManager: trayController.trayManager
+                    trayManager: trayController.trayManager,
+                    isTrayDropTargeted: state.isTrayDropTargeted
                 )
                     // Fixed content area, so the album art etc. are at their
                     // final size/position immediately and don't grow outward.
@@ -116,17 +123,40 @@ struct NotchView: View {
                 .animation(peekFade, value: isPeeking)
                 .allowsHitTesting(false)
             }
+            .overlay {
+                // The tray's drop target covers the whole notch shape on any
+                // tab. It is the topmost layer, so the drop reaches it over
+                // the tray's scroll views, and it exists only during a file
+                // drag, so it never takes clicks or scrolling.
+                if state.isFileDragging && trayEnabled {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onDrop(of: [.fileURL, .image], isTargeted: $state.isTrayDropTargeted) { providers in
+                            guard let tray = trayController.trayManager else { return false }
+                            return tray.ingestDrop(providers)
+                        }
+                }
+            }
             .frame(width: shapeWidth, height: shapeHeight)
+            .onChange(of: state.isTrayDropTargeted) { targeted in
+                if targeted && trayEnabled { state.selectedTabID = "tray" }
+            }
+            .onChange(of: state.isFileDragging) { dragging in
+                if !dragging { state.isTrayDropTargeted = false }
+            }
             .animation(shapeAnimation, value: state.isExpanded)
             .animation(.spring(response: 0.38, dampingFraction: 0.78), value: isPeeking)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // The notch is dark in both system appearances, so glass and
+            // semantic colors resolve for dark.
+            .environment(\.colorScheme, .dark)
             .onChange(of: nowPlaying.title) { newTitle in
                 guard !newTitle.isEmpty, nowPlaying.isPlaying else { return }
-                showPeek(.nowPlaying)
+                playSkipBump()
             }
             .onChange(of: nowPlaying.isPlaying) { playing in
-                guard playing, nowPlaying.hasMedia else { return }
-                showPeek(.nowPlaying)
+                guard nowPlaying.hasMedia else { return }
+                playSkipBump(thenPeek: playing)
             }
             .onAppear {
                 metrics.start()
@@ -146,12 +176,63 @@ struct NotchView: View {
             }
     }
 
+    // MARK: - Background
+
+    /// Black over the hardware notch, fading into a glass panel below it.
+    /// Solid black when the glass setting is off, on systems before macOS 26,
+    /// or with Reduce Transparency.
+    @ViewBuilder
+    private var notchBackground: some View {
+        let shape = NotchShape(bottomCornerRadius: state.isExpanded ? Layout.expandedBottomCornerRadius : Layout.bottomCornerRadius)
+        if #available(macOS 26.0, *), glassSheet, !reduceTransparency {
+            Color.clear
+                .glassEffect(.regular, in: shape)
+                .overlay(shape.fill((GlassTint(rawValue: glassTint) ?? .black).color.opacity(0.4)))
+                .overlay(alignment: .top) {
+                    VStack(spacing: 0) {
+                        Color.black.frame(height: notchHeight)
+                        LinearGradient(gradient: Self.glassFade, startPoint: .top, endPoint: .bottom)
+                            .frame(height: Layout.glassFadeHeight)
+                    }
+                }
+                .clipShape(shape)
+        } else {
+            shape.fill(Color.black)
+        }
+    }
+
+    /// Black to clear on a smootherstep curve. Its slope is zero at both
+    /// ends, so neither the black edge nor the glass edge shows a line.
+    private static let glassFade = Gradient(stops: (0...16).map { i in
+        let t = Double(i) / 16
+        let eased = t * t * t * (t * (t * 6 - 15) + 10)
+        return .init(color: .black.opacity(1 - eased), location: t)
+    })
+
     // MARK: - Peek
 
     private var peekFade: Animation {
         isPeeking
             ? .easeOut(duration: 0.18).delay(0.1)
             : .easeIn(duration: 0.1)
+    }
+
+    /// Track change or play/pause in closed form: the notch springs wider
+    /// and settles, then the title peek drops if requested.
+    private func playSkipBump(thenPeek: Bool = true) {
+        guard !state.isExpanded, Date() >= peeksEnabledAfter else { return }
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) {
+            skipBump = Layout.skipBumpWidth
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) {
+                skipBump = 0
+            }
+        }
+        guard thenPeek else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            showPeek(.nowPlaying)
+        }
     }
 
     private func showPeek(_ kind: PeekKind) {

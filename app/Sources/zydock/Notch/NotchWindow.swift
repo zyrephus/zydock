@@ -13,9 +13,6 @@ final class NotchWindow {
 
     // Extra width past the hardware notch to widen the hover trigger zone.
     private let earExtension: CGFloat = 45
-    // Dimensions of the expanded panel.
-    private let expandedW: CGFloat = 550
-    private let expandedH: CGFloat = 150
 
     private var isExpanded = false
     private var pinned = false
@@ -35,6 +32,13 @@ final class NotchWindow {
     // (i.e. in show()). Read by every mouse-move event, so worth caching.
     private var collapsedZone: NSRect = .zero
     private var expandedHoverZone: NSRect = .zero
+    /// Area around the closed notch where a file drag opens it.
+    private var dragZone: NSRect = .zero
+    private let dragApproach: CGFloat = 40
+    /// Drag pasteboard change count at the last mouse-down. A different
+    /// count while the button is held means a file drag is in progress,
+    /// as opposed to a window drag or a text selection.
+    private var dragChangeCountAtMouseDown = 0
     /// Lowest y the cursor can have while still being inside either zone.
     /// Used as a single-compare early-out to reject events far from the top.
     private var zoneMinY: CGFloat = 0
@@ -45,14 +49,12 @@ final class NotchWindow {
         notchH = max(screen.safeAreaInsets.top, 32)
         notchW = Self.physicalNotchWidth(for: screen)
 
-        let frame = collapsedFrame()
+        let frame = panelFrame(collapsedFrame())
 
         let view = NotchView(
             notchHeight: notchH,
             notchWidth: notchW,
             earWidth: earExtension,
-            expandedWidth: expandedW,
-            expandedHeight: expandedH,
             state: state
         )
         let host = NSHostingView(rootView: view)
@@ -76,10 +78,7 @@ final class NotchWindow {
         panel.orderFrontRegardless()
         self.panel = panel
 
-        collapsedZone = collapsedFrame()
-        expandedHoverZone = expandedFrame()
-            .insetBy(dx: -collapseMargin, dy: -collapseMargin)
-        zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
+        updateHoverZones()
 
         installMouseMonitors()
         installScreenObserver()
@@ -87,6 +86,14 @@ final class NotchWindow {
         state.$peek
             .removeDuplicates()
             .sink { [weak self] peek in self?.handlePeekChange(peek) }
+            .store(in: &cancellables)
+
+        // The expanded size depends on the tab; hop to the next main-queue
+        // turn so the zones read the tab after it is set.
+        state.$selectedTabID
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateHoverZones() }
             .store(in: &cancellables)
     }
 
@@ -116,18 +123,15 @@ final class NotchWindow {
         notchH = max(screen.safeAreaInsets.top, 32)
         notchW = Self.physicalNotchWidth(for: screen)
 
-        collapsedZone = collapsedFrame()
-        expandedHoverZone = expandedFrame()
-            .insetBy(dx: -collapseMargin, dy: -collapseMargin)
-        zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY)
+        updateHoverZones()
 
         let target: NSRect
         if isExpanded {
-            target = expandedFrame()
+            target = expandedPanelFrame()
         } else if state.peek != nil {
-            target = peekFrame()
+            target = panelFrame(peekFrame())
         } else {
-            target = collapsedFrame()
+            target = panelFrame(collapsedFrame())
         }
         panel?.setFrame(target, display: true)
     }
@@ -137,17 +141,36 @@ final class NotchWindow {
         // Include drag events so expansion works while the user is dragging —
         // macOS sends *MouseDragged instead of mouseMoved while a button is held.
         let mask: NSEvent.EventTypeMask = [
-            .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged
+            .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .leftMouseDown
         ]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: mask
-        ) { [weak self] _ in self?.handleMouseMoved() }
+        ) { [weak self] event in self?.handleMouseEvent(event) }
         localMonitor = NSEvent.addLocalMonitorForEvents(
             matching: mask
         ) { [weak self] event in
-            self?.handleMouseMoved()
+            self?.handleMouseEvent(event)
             return event
         }
+    }
+
+    private func handleMouseEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown {
+            dragChangeCountAtMouseDown = NSPasteboard(name: .drag).changeCount
+        } else {
+            handleMouseMoved()
+        }
+    }
+
+    /// Cleared by the first plain mouse move after the drag, which comes
+    /// after the drop has been delivered.
+    private func setFileDragging(_ dragging: Bool) {
+        if state.isFileDragging != dragging { state.isFileDragging = dragging }
+    }
+
+    private var isFileDragActive: Bool {
+        NSEvent.pressedMouseButtons & 1 != 0
+            && NSPasteboard(name: .drag).changeCount != dragChangeCountAtMouseDown
     }
 
     private func handleMouseMoved() {
@@ -159,6 +182,9 @@ final class NotchWindow {
             return
         }
 
+        let fileDrag = isFileDragActive
+        setFileDragging(fileDrag)
+
         if isExpanded {
             if expandedHoverZone.contains(loc) {
                 cancelPendingCollapse()
@@ -168,14 +194,18 @@ final class NotchWindow {
         } else if collapsedZone.contains(loc)
                     || (state.peek != nil && peekFrame().contains(loc)) {
             expand()
-            // If the user is dragging (any mouse button held) into the notch
-            // AND the Tray module is enabled, force the Tray tab so they
-            // have a drop target. Without the registry check the persisted
-            // `selectedTabID` can point at a disabled module.
-            if NSEvent.pressedMouseButtons != 0,
-               ModuleRegistry.shared.isEnabled("tray") {
-                state.selectedTabID = "tray"
-            }
+            if fileDrag { openTrayForDrag() }
+        } else if dragZone.contains(loc), fileDrag,
+                  ModuleRegistry.shared.isEnabled("tray") {
+            expand()
+            openTrayForDrag()
+        }
+    }
+
+    /// The registry check keeps the persisted tab off a disabled module.
+    private func openTrayForDrag() {
+        if ModuleRegistry.shared.isEnabled("tray") {
+            state.selectedTabID = "tray"
         }
     }
 
@@ -210,13 +240,27 @@ final class NotchWindow {
         )
     }
 
-    private func expandedFrame() -> NSRect {
+    private func expandedFrame(_ size: CGSize) -> NSRect {
         NSRect(
-            x: screenFrame.midX - expandedW / 2,
-            y: screenFrame.maxY - notchH - expandedH,
-            width: expandedW,
-            height: notchH + expandedH
+            x: screenFrame.midX - size.width / 2,
+            y: screenFrame.maxY - notchH - size.height,
+            width: size.width,
+            height: notchH + size.height
         )
+    }
+
+    /// The panel takes the largest tab's rect; the shape animates between
+    /// tab sizes inside it.
+    private func expandedPanelFrame() -> NSRect {
+        expandedFrame(Layout.trayExpandedSize)
+    }
+
+    private func updateHoverZones() {
+        collapsedZone = collapsedFrame()
+        expandedHoverZone = expandedFrame(state.expandedSize)
+            .insetBy(dx: -collapseMargin, dy: -collapseMargin)
+        dragZone = collapsedZone.insetBy(dx: -dragApproach, dy: -dragApproach)
+        zoneMinY = min(collapsedZone.minY, expandedHoverZone.minY, dragZone.minY)
     }
 
     private func peekFrame() -> NSRect {
@@ -229,6 +273,12 @@ final class NotchWindow {
         )
     }
 
+    /// Panel rect for a closed-state shape rect. The transparent side margins
+    /// give the skip bump and its spring overshoot room to draw.
+    private func panelFrame(_ shape: NSRect) -> NSRect {
+        shape.insetBy(dx: -Layout.skipBumpWidth, dy: 0)
+    }
+
     /// Grow the window for the peek sliver (instant — the extra area is
     /// transparent until SwiftUI animates the shape into it).
     private func handlePeekChange(_ peek: PeekKind?) {
@@ -236,7 +286,7 @@ final class NotchWindow {
         if peek != nil {
             pendingFrameShrink?.cancel()
             pendingFrameShrink = nil
-            panel?.setFrame(peekFrame(), display: true)
+            panel?.setFrame(panelFrame(peekFrame()), display: true)
         } else {
             scheduleFrameShrink()
         }
@@ -255,7 +305,7 @@ final class NotchWindow {
         }
         pendingFrameShrink?.cancel()
         pendingFrameShrink = nil
-        panel?.setFrame(expandedFrame(), display: true)
+        panel?.setFrame(expandedPanelFrame(), display: true)
         state.peek = nil
         state.isExpanded = true
         registerTabHotkeys()
@@ -277,7 +327,7 @@ final class NotchWindow {
             guard let self = self else { return }
             self.pendingFrameShrink = nil
             guard !self.isExpanded, self.state.peek == nil else { return }
-            self.panel?.setFrame(self.collapsedFrame(), display: true)
+            self.panel?.setFrame(self.panelFrame(self.collapsedFrame()), display: true)
         }
         pendingFrameShrink = item
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)

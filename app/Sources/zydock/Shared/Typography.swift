@@ -21,6 +21,38 @@ enum Layout {
     static let earInwardNudge: CGFloat = 1
     /// Height of the transient peek sliver below the collapsed notch.
     static let peekHeight: CGFloat = 30
+    /// Extra width the collapsed notch springs out to on a track change or play/pause.
+    static let skipBumpWidth: CGFloat = 24
+    /// Expanded content area below the notch.
+    static let expandedSize = CGSize(width: 550, height: 150)
+    /// Expanded content area on the Tray tab: two rows of six cells.
+    static let trayExpandedSize = CGSize(width: 640, height: 240)
+    /// Distance below the hardware notch over which black fades into the glass panel.
+    static let glassFadeHeight: CGFloat = 56
+}
+
+/// Tint of the glass panel below the notch.
+enum GlassTint: String, CaseIterable, Identifiable {
+    case black, blue, purple, pink, red, orange, yellow, green, teal
+
+    static let key = "glassTint"
+
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+
+    var color: Color {
+        switch self {
+        case .black: return .black
+        case .blue: return .blue
+        case .purple: return .purple
+        case .pink: return .pink
+        case .red: return .red
+        case .orange: return .orange
+        case .yellow: return .yellow
+        case .green: return .green
+        case .teal: return .teal
+        }
+    }
 }
 
 // MARK: - Staggered pop-in

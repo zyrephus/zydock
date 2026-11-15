@@ -8,6 +8,7 @@ struct TabContentView: View {
     @ObservedObject var calendar: CalendarManager
     var sessionState: SessionState?
     var trayManager: TrayManager?
+    var isTrayDropTargeted: Bool
 
     var body: some View {
         ZStack {
@@ -26,7 +27,7 @@ struct TabContentView: View {
                 }
             case "tray":
                 if let trayManager {
-                    TrayView(trayManager: trayManager)
+                    TrayView(trayManager: trayManager, isDropTargeted: isTrayDropTargeted)
                         .popIn(isExpanded)
                         .transition(transition)
                 } else {

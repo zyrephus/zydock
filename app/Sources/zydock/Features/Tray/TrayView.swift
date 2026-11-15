@@ -4,9 +4,9 @@ import UniformTypeIdentifiers
 
 struct TrayView: View {
     @ObservedObject var trayManager: TrayManager
+    var isDropTargeted: Bool
     @State private var copiedItemID: UUID?
     @State private var hoveredItemID: UUID?
-    @State private var isDropTargeted = false
     @State private var section: TraySection = .files
     @Namespace private var pillNS
 
@@ -41,9 +41,6 @@ struct TrayView: View {
         .padding(.top, 6)
         .padding(.bottom, Layout.contentPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onDrop(of: [.fileURL, .image], isTargeted: $isDropTargeted) { providers in
-            trayManager.ingestDrop(providers)
-        }
         .onChange(of: isDropTargeted) { targeted in
             if targeted { section = .files }
         }

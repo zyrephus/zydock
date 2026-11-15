@@ -10,6 +10,8 @@ struct SettingsView: View {
     @ObservedObject private var registry: ModuleRegistry = .shared
     @AppStorage("weatherUnit") private var weatherUnit: String = TemperatureUnit.fahrenheit.rawValue
     @AppStorage(DefaultTab.key) private var defaultTabID: String = ""
+    @AppStorage("glassSheet") private var glassSheet = true
+    @AppStorage(GlassTint.key) private var glassTint = GlassTint.black.rawValue
 
     var body: some View {
         Form {
@@ -72,6 +74,21 @@ struct SettingsView: View {
                 Text("Which tab the notch shows each time it expands.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                if #available(macOS 26.0, *) {
+                    Toggle("Glass panel", isOn: $glassSheet)
+                    HStack {
+                        Text("Tint")
+                        Spacer()
+                        ForEach(GlassTint.allCases) { tint in
+                            tintSwatch(tint)
+                        }
+                    }
+                    .disabled(!glassSheet)
+                    Text("The panel below the notch shows the desktop through Liquid Glass. Turn off for solid black.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section("Modules") {
@@ -95,6 +112,24 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 420, height: 360)
         .onAppear { loadCurrentShortcut() }
+    }
+
+    private func tintSwatch(_ tint: GlassTint) -> some View {
+        let selected = glassTint == tint.rawValue
+        return Button {
+            glassTint = tint.rawValue
+        } label: {
+            Circle()
+                .fill(tint.color)
+                .overlay(Circle().strokeBorder(Color.secondary.opacity(0.5), lineWidth: 0.5))
+                .frame(width: 16, height: 16)
+                .padding(3)
+                .overlay(Circle().strokeBorder(Color.accentColor, lineWidth: selected ? 2 : 0))
+        }
+        .buttonStyle(.plain)
+        .help(tint.label)
+        .accessibilityLabel(tint.label)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func binding(for module: Module) -> Binding<Bool> {

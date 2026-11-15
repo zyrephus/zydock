@@ -204,10 +204,14 @@ final class TrayManager: ObservableObject {
     func ingestDrop(_ providers: [NSItemProvider]) -> Bool {
         var accepted = false
         for provider in providers {
-            if provider.canLoadObject(ofClass: URL.self) {
+            // Web URLs (an image dragged from a browser) fall through to the
+            // image-data branch; only files on disk are kept by URL.
+            let fileURLType = "public.file-url"
+            if provider.hasItemConformingToTypeIdentifier(fileURLType) {
                 accepted = true
-                _ = provider.loadObject(ofClass: URL.self) { [weak self] url, _ in
-                    guard let self, let url else { return }
+                provider.loadDataRepresentation(forTypeIdentifier: fileURLType) { [weak self] data, _ in
+                    guard let self, let data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
                     self.ingestFileURL(url)
                 }
                 continue
