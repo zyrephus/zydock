@@ -5,6 +5,30 @@ All notable changes to zydock are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-15
+
+### Added
+- Glass panel: on macOS 26 and later, the open notch shows the desktop through
+  Liquid Glass below a black top that fades smoothly into it. On by default;
+  turn it off in Settings for solid black.
+- Glass tint: pick black, blue, purple, pink, red, orange, yellow, green, or
+  teal in Settings.
+- Music bump: the closed notch springs wider when the track changes or
+  playback pauses or resumes.
+- Dragging a file near the closed notch opens it on the Tray tab.
+
+### Changed
+- The Tray tab opens larger (640 by 240 pt), so a full tray shows every item
+  without scrolling. Other tabs keep their size.
+
+### Fixed
+- Files can be dropped anywhere on the open notch, on any tab. Before, drops
+  failed over the tray's item grid and the top bar.
+- An image dragged from a browser is now saved to the tray instead of showing
+  a blank item.
+- Dragging a window or selecting text near the notch no longer switches to the
+  Tray tab.
+
 ## [1.1.1] - 2026-08-02
 
 ### Added
